@@ -126,7 +126,7 @@ router.post("/logout", async (req, res) => {
   try {
     const { serialId } = req.body;
     const updatedSerial = await prisma.serial.update({
-      where: { serialId },
+      where: { id: serialId },
       data: { device: null },
     });
     res.json(updatedSerial);

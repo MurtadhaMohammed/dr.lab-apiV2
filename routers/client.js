@@ -1,6 +1,7 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const adminAuth = require("../middleware/adminAuth");
+const dayjs = require("dayjs");
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -32,7 +33,9 @@ router.post("/register-device", async (req, res) => {
     if (existingSerial) {
       const updatedSerial = await prisma.serial.update({
         where: { serial },
-        data: { device },
+        data: !existingSerial.device
+          ? { device, registeredAt: dayjs().toISOString() }
+          : { device },
         include: { client: true },
       });
       res.json(updatedSerial);

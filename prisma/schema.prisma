@@ -34,11 +34,12 @@ model Client {
 }
 
 model Serial {
-  id        Int      @id @default(autoincrement())
-  serial    String   @unique
-  device    String?
-  exp       Int?
-  active    Boolean  @default(true)
-  createtAt DateTime @default(now())
-  client    Client?
+  id           Int      @id @default(autoincrement())
+  serial       String   @unique
+  device       String?
+  exp          Int?
+  registeredAt DateTime?
+  active       Boolean  @default(true)
+  createtAt    DateTime @default(now())
+  client       Client?
 }

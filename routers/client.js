@@ -8,10 +8,11 @@ const prisma = new PrismaClient();
 // 1 - Endpoint to create a serial
 router.post("/create-serial", adminAuth, async (req, res) => {
   try {
-    const { serial } = req.body;
+    const { serial, exp } = req.body;
     const newSerial = await prisma.serial.create({
       data: {
         serial,
+        exp,
       },
     });
     res.json(newSerial);

@@ -29,17 +29,21 @@ router.post("/register-device", async (req, res) => {
     const { serial, device } = req.body;
     const existingSerial = await prisma.serial.findUnique({
       where: { serial },
-      include: { client: true },
     });
     if (existingSerial) {
-      if (!existingSerial.device) {
-        const updatedSerial = await prisma.serial.update({
-          where: { serial },
-          data: { device, registeredAt: dayjs().toISOString() },
-          include: { client: true },
-        });
-        res.json(updatedSerial);
-      } else res.json(existingSerial);
+      const updatedSerial = await prisma.serial.update({
+        where: { serial },
+        data: existingSerial.registeredAt
+          ? {
+              device,
+            }
+          : {
+              device,
+              registeredAt: dayjs().toISOString(),
+            },
+        include: { client: true },
+      });
+      res.json(updatedSerial);
     } else {
       res.status(404).json({ error: "Serial not found" });
     }

@@ -12,7 +12,7 @@ router.post("/create-serial", adminAuth, async (req, res) => {
     const newSerial = await prisma.serial.create({
       data: {
         serial,
-        exp: Number(exp),
+        exp: Number(30),
       },
     });
     res.json(newSerial);
@@ -33,6 +33,7 @@ router.post("/register-device", async (req, res) => {
       const updatedSerial = await prisma.serial.update({
         where: { serial },
         data: { device },
+        include: { client: true },
       });
       res.json(updatedSerial);
     } else {

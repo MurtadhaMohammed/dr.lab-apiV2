@@ -37,7 +37,7 @@ model Serial {
   id        Int      @id @default(autoincrement())
   serial    String
   device    String?
-  exp       Int 
+  exp       Int?
   active    Boolean  @default(true)
   createtAt DateTime @default(now())
   client    Client?

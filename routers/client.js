@@ -31,7 +31,7 @@ router.post("/register-device", async (req, res) => {
     });
     if (existingSerial) {
       const updatedSerial = await prisma.serial.update({
-        where: { serial },
+        where: { id: existingSerial.id },
         data: { device },
         include: { client: true },
       });

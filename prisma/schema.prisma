@@ -35,7 +35,7 @@ model Client {
 
 model Serial {
   id        Int      @id @default(autoincrement())
-  serial    String
+  serial    String   @unique
   device    String?
   exp       Int?
   active    Boolean  @default(true)

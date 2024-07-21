@@ -122,4 +122,18 @@ router.post("/add-client", async (req, res) => {
   }
 });
 
+router.post("/logout", async (req, res) => {
+  try {
+    const { serialId } = req.body;
+    const updatedSerial = await prisma.serial.update({
+      where: { serialId },
+      data: { device: null },
+    });
+    res.json(updatedSerial);
+  } catch (error) {
+    console.error("Error registering device:", error);
+    res.status(500).json({ error: "Could not register device" });
+  }
+});
+
 module.exports = router;

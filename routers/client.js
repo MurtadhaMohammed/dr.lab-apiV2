@@ -136,25 +136,6 @@ router.post("/add-client", async (req, res) => {
 
 router.put("/update-client", async (req, res) => {
   try {
-    const { name, phone, email, address, serialId } = req.body;
-    const newClient = await prisma.client.create({
-      data: {
-        name,
-        phone,
-        email,
-        address,
-        serialId,
-      },
-    });
-    res.json(newClient);
-  } catch (error) {
-    console.error("Error adding client:", error);
-    res.status(500).json({ error: "Could not add client" });
-  }
-});
-
-router.put("/update-client", async (req, res) => {
-  try {
     const { device, name, phone, email, address } = req.body;
 
     // Find the serial by the device ID

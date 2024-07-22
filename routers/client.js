@@ -13,7 +13,7 @@ router.post("/create-serial", adminAuth, async (req, res) => {
     const newSerial = await prisma.serial.create({
       data: {
         serial,
-        exp: Number(30),
+        exp,
       },
     });
     res.json(newSerial);

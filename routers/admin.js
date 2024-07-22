@@ -32,7 +32,7 @@ router.post("/login", async (req, res) => {
           username: admin.username,
         },
         JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "1y" }
       );
 
       res.json({ message: "Login successful", token });

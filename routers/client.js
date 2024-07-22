@@ -31,6 +31,10 @@ router.post("/register-device", async (req, res) => {
       where: { serial },
     });
     if (existingSerial) {
+      if (existingSerial.device && existingSerial.device !== device) {
+        res.status(404).json({ error: "Serial not valid" });
+        return;
+      }
       const updatedSerial = await prisma.serial.update({
         where: { serial },
         data: existingSerial.registeredAt

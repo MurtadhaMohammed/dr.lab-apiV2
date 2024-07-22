@@ -76,7 +76,11 @@ router.patch("/serial/:id/activate", adminAuth, async (req, res) => {
 // 4 - Endpoint to read all serials
 router.get("/serials", adminAuth, async (req, res) => {
   try {
-    const serials = await prisma.serial.findMany();
+    const serials = await prisma.serial.findMany({
+      include: {
+        client: true,
+      },
+    });
     res.json(serials);
   } catch (error) {
     console.error("Error fetching serials:", error);

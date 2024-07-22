@@ -134,6 +134,67 @@ router.post("/add-client", async (req, res) => {
   }
 });
 
+router.put("/update-client", async (req, res) => {
+  try {
+    const { name, phone, email, address, serialId } = req.body;
+    const newClient = await prisma.client.create({
+      data: {
+        name,
+        phone,
+        email,
+        address,
+        serialId,
+      },
+    });
+    res.json(newClient);
+  } catch (error) {
+    console.error("Error adding client:", error);
+    res.status(500).json({ error: "Could not add client" });
+  }
+});
+
+router.put("/update-client", async (req, res) => {
+  try {
+    const { device, name, phone, email, address } = req.body;
+
+    // Find the serial by the device ID
+    const serial = await prisma.serial.findUnique({
+      where: { device },
+    });
+
+    if (!serial) {
+      return res.status(404).json({ error: "Serial not found" });
+    }
+
+    // Find the client associated with the serial
+    const existingClient = await prisma.client.findUnique({
+      where: { serialId: serial.id },
+    });
+
+    if (!existingClient) {
+      return res
+        .status(404)
+        .json({ error: "Client not found for the given device" });
+    }
+
+    // Update the client details
+    const updatedClient = await prisma.client.update({
+      where: { id: existingClient.id },
+      data: {
+        name: name || existingClient.name,
+        phone: phone || existingClient.phone,
+        email: email || existingClient.email,
+        address: address || existingClient.address,
+      },
+    });
+
+    res.json(updatedClient);
+  } catch (error) {
+    console.error("Error updating client:", error);
+    res.status(500).json({ error: "Could not update client" });
+  }
+});
+
 router.post("/logout", async (req, res) => {
   try {
     const { serialId } = req.body;

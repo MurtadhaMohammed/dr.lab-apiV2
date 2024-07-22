@@ -78,9 +78,7 @@ router.get("/serials", adminAuth, async (req, res) => {
   try {
     const serials = await prisma.serial.findMany({
       where: {
-        client: {
-          id: null,
-        },
+        client: null,
       },
       include: {
         client: true,

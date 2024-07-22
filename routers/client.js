@@ -139,7 +139,7 @@ router.put("/update-client", async (req, res) => {
     const { device, name, phone, email, address } = req.body;
 
     // Find the serial by the device ID
-    const serial = await prisma.serial.findUnique({
+    const serial = await prisma.serial.findFirst({
       where: { device },
     });
 

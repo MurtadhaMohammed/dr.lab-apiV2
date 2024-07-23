@@ -145,6 +145,26 @@ router.post("/add-client", async (req, res) => {
   }
 });
 
+router.put("/update-client/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, email, address } = req.body;
+    const updatedClient = await prisma.client.update({
+      where: { id: parseInt(id) },
+      data: {
+        name,
+        phone,
+        email,
+        address,
+      },
+    });
+    res.json(updatedClient);
+  } catch (error) {
+    console.error("Error updating client:", error);
+    res.status(500).json({ error: "Could not update client" });
+  }
+});
+
 router.put("/update-client", async (req, res) => {
   try {
     const { device, name, phone, email, address } = req.body;

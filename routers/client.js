@@ -27,7 +27,7 @@ router.post("/create-serial", adminAuth, async (req, res) => {
 router.post("/register-device", async (req, res) => {
   try {
     const { serial, device } = req.body;
-    const existingSerial = await prisma.serial.findUnique({
+    const existingSerial = await prisma.serial.findFirst({
       where: { serial },
     });
     if (existingSerial) {
@@ -36,7 +36,7 @@ router.post("/register-device", async (req, res) => {
         return;
       }
       const updatedSerial = await prisma.serial.update({
-        where: { serial },
+        where: { id: parseInt(existingSerial?.id) },
         data: existingSerial.registeredAt
           ? {
               device,

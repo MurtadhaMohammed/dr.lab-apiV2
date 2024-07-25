@@ -13,7 +13,7 @@ router.post("/create-serial", adminAuth, async (req, res) => {
     const newSerial = await prisma.serial.create({
       data: {
         serial,
-        exp,
+        exp: Number(30),
       },
     });
     res.json(newSerial);
@@ -27,7 +27,7 @@ router.post("/create-serial", adminAuth, async (req, res) => {
 router.post("/register-device", async (req, res) => {
   try {
     const { serial, device } = req.body;
-    const existingSerial = await prisma.serial.findFirst({
+    const existingSerial = await prisma.serial.findUnique({
       where: { serial },
     });
     if (existingSerial) {
@@ -36,7 +36,7 @@ router.post("/register-device", async (req, res) => {
         return;
       }
       const updatedSerial = await prisma.serial.update({
-        where: { id: parseInt(existingSerial?.id) },
+        where: { serial },
         data: existingSerial.registeredAt
           ? {
               device,
@@ -142,26 +142,6 @@ router.post("/add-client", async (req, res) => {
   } catch (error) {
     console.error("Error adding client:", error);
     res.status(500).json({ error: "Could not add client" });
-  }
-});
-
-router.put("/update-client/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, phone, email, address } = req.body;
-    const updatedClient = await prisma.client.update({
-      where: { id: parseInt(id) },
-      data: {
-        name,
-        phone,
-        email,
-        address,
-      },
-    });
-    res.json(updatedClient);
-  } catch (error) {
-    console.error("Error updating client:", error);
-    res.status(500).json({ error: "Could not update client" });
   }
 });
 

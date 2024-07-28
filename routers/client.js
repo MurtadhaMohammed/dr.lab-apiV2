@@ -26,7 +26,7 @@ router.post("/create-serial", adminAuth, async (req, res) => {
 // 2 - Endpoint to register device by checking if serial is valid
 router.post("/register-device", async (req, res) => {
   try {
-    const { serial, device } = req.body;
+    const { serial, device, platform } = req.body;
     const existingSerial = await prisma.serial.findFirst({
       where: { serial },
     });
@@ -40,9 +40,11 @@ router.post("/register-device", async (req, res) => {
         data: existingSerial.registeredAt
           ? {
               device,
+              platform,
             }
           : {
               device,
+              platform,
               registeredAt: dayjs().toISOString(),
             },
         include: { client: true },

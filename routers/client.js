@@ -209,18 +209,171 @@ router.put("/update-client/:id", async (req, res) => {
   }
 });
 
-
 router.post("/logout", async (req, res) => {
   try {
     const { serialId } = req.body;
-    const updatedSerial = await prisma.serial.update({
-      where: { id: serialId },
+    const updatedSerial = await prisma.subscription.update({
+      where: { serialId },
       data: { device: null },
     });
     res.json(updatedSerial);
   } catch (error) {
     console.error("Error registering device:", error);
     res.status(500).json({ error: "Could not register device" });
+  }
+});
+
+function isSerialExpired(serial) {
+  try {
+    // Ensure registeredAt and exp fields are available
+    if (!serial?.registeredAt || !serial?.exp) {
+      return false;
+    }
+
+    // Calculate the expiration date by adding exp (in days) to registeredAt
+    const expirationDate = new Date(serial.registeredAt);
+    expirationDate.setDate(expirationDate.getDate() + serial.exp);
+
+    // Get the current date
+    const currentDate = new Date();
+
+    // Compare the current date with the expiration date
+    if (currentDate > expirationDate) {
+      return true; // Serial has expired
+    } else {
+      return false; // Serial is still valid
+    }
+  } catch (error) {
+    console.error("Error checking serial expiration:", error);
+    throw error;
+  }
+}
+
+router.post("/check-client", async (req, res) => {
+  const { phone, serial } = req.body;
+  try {
+    const existingSerial = await prisma.serial.findFirst({
+      where: { serial },
+    });
+
+    if (
+      !existingSerial ||
+      !existingSerial.active ||
+      existingSerial.registeredAt
+    ) {
+      return res.status(400).json({ message: "Invalid or inactive serial" });
+    }
+
+    const client = await prisma.client.findFirst({
+      where: {
+        phone: phone,
+      },
+    });
+
+    if (client) {
+      res.json({ success: true, client });
+    } else {
+      res.json({ success: false, message: "Client not found" });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "An error occurred while checking the client" });
+  }
+});
+
+router.post("/register", async (req, res) => {
+  const { client, serial, device, platform, phone } = req.body;
+  try {
+    // Check if the serial is valid and active
+    const existingSerial = await prisma.serial.findFirst({
+      where: { serial },
+    });
+
+    let existingClient = await prisma.client.findFirst({
+      where: { phone },
+    });
+
+    if (!existingSerial || !existingSerial.active) {
+      return res.status(400).json({ message: "Invalid or inactive serial" });
+    }
+
+    // Check if the serial is already registered
+    const existingSubscription = await prisma.subscription.findFirst({
+      where: { serialId: existingSerial.id },
+      include: {
+        serial: true,
+        client: true,
+      },
+    });
+
+    if (existingSubscription && existingSubscription.device !== device) {
+      return res
+        .status(400)
+        .json({ message: "Serial number is already registered" });
+    }
+
+    if (
+      existingSubscription &&
+      existingSubscription.device === device &&
+      !isSerialExpired(existingSerial)
+    ) {
+      return res.json(existingSubscription);
+    }
+
+    if (
+      existingSubscription &&
+      !existingSubscription.device &&
+      !isSerialExpired(existingSerial) &&
+      existingSubscription.client.phone === phone
+    ) {
+      return res.json(existingSubscription);
+    }
+
+    if (!existingClient) {
+      existingClient = await prisma.client.create({
+        data: client,
+      });
+    }
+
+    if (!platform && !device) {
+      return res.status(400).json({ message: "Invalid or data" });
+    }
+
+    const updateSerialPromise = prisma.serial.update({
+      where: { id: parseInt(existingSerial.id) },
+      data: {
+        registeredAt: dayjs().toISOString(), // Set registeredAt to the current date and time
+      },
+    });
+
+    console.log({ existingClient, existingSerial });
+
+    const createSubscriptionPromise = prisma.subscription.create({
+      data: {
+        clientId: parseInt(existingClient.id),
+        serialId: parseInt(existingSerial.id),
+        platform,
+        device,
+      },
+      include: {
+        serial: true, // Include the serial data in the response
+        client: true, // Include the client data in the response
+      },
+    });
+
+    // Run both promises concurrently
+    const [_, newSubscription] = await Promise.all([
+      updateSerialPromise,
+      createSubscriptionPromise,
+    ]);
+
+    res.json(newSubscription);
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while checking the client" });
   }
 });
 

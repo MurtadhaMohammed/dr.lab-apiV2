@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -24,11 +18,11 @@ model Admin {
 model Client {
   id            Int            @id @default(autoincrement())
   name          String
-  phone         String
+  phone         String         @unique
   email         String?
   address       String?
   active        Boolean        @default(true)
-  createtAt     DateTime       @default(now())
+  createdAt     DateTime       @default(now())
   subscriptions Subscription[]
 }
 
@@ -36,20 +30,20 @@ model Serial {
   id            Int            @id @default(autoincrement())
   serial        String         @unique
   exp           Int
-  price         Float          @default(0)
-  registeredAt  DateTime?
   active        Boolean        @default(true)
-  createtAt     DateTime       @default(now())
+  registeredAt  DateTime?
+  price         Float          @default(0)
+  createdAt     DateTime       @default(now())
   subscriptions Subscription[]
 }
 
 model Subscription {
   id        Int      @id @default(autoincrement())
-  client    Client   @relation(fields: [clientId], references: [id])
-  serial    Serial   @relation(fields: [serialId], references: [id])
   clientId  Int
   serialId  Int
-  platform  String
+  platform  String?
   device    String?
-  createtAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id])
+  serial    Serial   @relation(fields: [serialId], references: [id])
 }

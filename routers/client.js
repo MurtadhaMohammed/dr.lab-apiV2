@@ -59,42 +59,41 @@ router.post("/register-device", async (req, res) => {
   }
 });
 
-router.post("/check-client", async (req, res) => {
-  try {
-    const { phone } = req.body;
-    const client = await prisma.client.findFirst({
-      where: { phone },
-    });
+// router.post("/check-client", async (req, res) => {
+//   try {
+//     const { phone } = req.body;
+//     const client = await prisma.client.findFirst({
+//       where: { phone },
+//     });
 
-    if (client) {
-      res.status(200).json({ client, success: "Phone number is registered" });
-    } else {
-      res.status(404).json({ error: "Phone number is not registered" });
-    }
-  } catch (error) {
-    console.error("Error checking client registration:", error);
-    res.status(500).json({ error: "Could not check client registration" });
-  }
-});
+//     if (client) {
+//       res.status(200).json({ client, success: "Phone number is registered" });
+//     } else {
+//       res.status(404).json({ error: "Phone number is not registered" });
+//     }
+//   } catch (error) {
+//     console.error("Error checking client registration:", error);
+//     res.status(500).json({ error: "Could not check client registration" });
+//   }
+// });
 
-router.post("/register", async (req, res) => {
-  try {
-    const {device,platform,serialId,clientId} = req.body;
-    const newSubscription = await prisma.subscription.create({
-      data: {
-        device,
-        platform,
-        serialId,
-        clientId,
-      },
-    });
-    res.json(newSubscription);
-
-  } catch (error) {
-    console.error("Error registering device:", error);
-    res.status(500).json({ error: "Could not register device" });
-  }
-});
+// router.post("/register", async (req, res) => {
+//   try {
+//     const { device, platform, serialId, clientId } = req.body;
+//     const newSubscription = await prisma.subscription.create({
+//       data: {
+//         device,
+//         platform,
+//         serialId,
+//         clientId,
+//       },
+//     });
+//     res.json(newSubscription);
+//   } catch (error) {
+//     console.error("Error registering device:", error);
+//     res.status(500).json({ error: "Could not register device" });
+//   }
+// });
 
 // 3 - Endpoint to activate/deactivate a serial
 router.patch("/serial/:id/activate", adminAuth, async (req, res) => {
@@ -330,6 +329,7 @@ router.post("/check-client", async (req, res) => {
       res.json({ success: false, message: "Client not found" });
     }
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ error: "An error occurred while checking the client" });
@@ -394,18 +394,16 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Invalid or data" });
     }
 
-    const updateSerialPromise = prisma.serial.update({
+    const updateSerial = await prisma.serial.update({
       where: { id: parseInt(existingSerial.id) },
       data: {
         registeredAt: dayjs().toISOString(), // Set registeredAt to the current date and time
       },
     });
 
-    console.log({ existingClient, existingSerial });
-
-    const createSubscriptionPromise = prisma.subscription.create({
+    const createSubscription = await prisma.subscription.create({
       data: {
-        clientId: parseInt(existingClient.id),
+        clientId: parseInt(updateSerial.id),
         serialId: parseInt(existingSerial.id),
         platform,
         device,
@@ -416,13 +414,7 @@ router.post("/register", async (req, res) => {
       },
     });
 
-    // Run both promises concurrently
-    const [_, newSubscription] = await Promise.all([
-      updateSerialPromise,
-      createSubscriptionPromise,
-    ]);
-
-    res.json(newSubscription);
+    res.json(createSubscription);
   } catch (error) {
     console.log(error);
     res

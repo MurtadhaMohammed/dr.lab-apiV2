@@ -22,25 +22,34 @@ model Admin {
 }
 
 model Client {
-  id        Int      @id @default(autoincrement())
-  name      String
-  phone     String
-  email     String?
-  address   String?
-  active    Boolean  @default(true)
-  serial    Serial   @relation(fields: [serialId], references: [id])
-  serialId  Int      @unique
-  createtAt DateTime @default(now())
+  id            Int            @id @default(autoincrement())
+  name          String
+  phone         String
+  email         String?
+  address       String?
+  active        Boolean        @default(true)
+  createtAt     DateTime       @default(now())
+  subscriptions Subscription[]
 }
 
 model Serial {
-  id           Int       @id @default(autoincrement())
-  serial       String    @unique
-  device       String?   @unique
-  platform     String?
-  exp          Int?
-  registeredAt DateTime?
-  active       Boolean   @default(true)
-  createtAt    DateTime  @default(now())
-  client       Client?
+  id            Int            @id @default(autoincrement())
+  serial        String         @unique
+  exp           Int
+  price         Float          @default(0)
+  registeredAt  DateTime?
+  active        Boolean        @default(true)
+  createtAt     DateTime       @default(now())
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  client    Client   @relation(fields: [clientId], references: [id])
+  serial    Serial   @relation(fields: [serialId], references: [id])
+  clientId  Int
+  serialId  Int
+  platform  String
+  device    String?
+  createtAt DateTime @default(now())
 }

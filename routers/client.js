@@ -13,7 +13,7 @@ router.post("/create-serial", adminAuth, async (req, res) => {
     const newSerial = await prisma.serial.create({
       data: {
         serial,
-        exp: Number(30),
+        exp,
       },
     });
     res.json(newSerial);
@@ -59,6 +59,43 @@ router.post("/register-device", async (req, res) => {
   }
 });
 
+router.post("/check-client", async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const client = await prisma.client.findFirst({
+      where: { phone },
+    });
+
+    if (client) {
+      res.status(200).json({ client, success: "Phone number is registered" });
+    } else {
+      res.status(404).json({ error: "Phone number is not registered" });
+    }
+  } catch (error) {
+    console.error("Error checking client registration:", error);
+    res.status(500).json({ error: "Could not check client registration" });
+  }
+});
+
+router.post("/register", async (req, res) => {
+  try {
+    const {device,platform,serialId,clientId} = req.body;
+    const newSubscription = await prisma.subscription.create({
+      data: {
+        device,
+        platform,
+        serialId,
+        clientId,
+      },
+    });
+    res.json(newSubscription);
+
+  } catch (error) {
+    console.error("Error registering device:", error);
+    res.status(500).json({ error: "Could not register device" });
+  }
+});
+
 // 3 - Endpoint to activate/deactivate a serial
 router.patch("/serial/:id/activate", adminAuth, async (req, res) => {
   try {
@@ -76,17 +113,24 @@ router.patch("/serial/:id/activate", adminAuth, async (req, res) => {
 });
 
 // 4 - Endpoint to read all serials
-router.get("/serials", adminAuth, async (req, res) => {
+router.get("/serials", async (req, res) => {
   try {
     const serials = await prisma.serial.findMany({
-      where: {
-        client: null,
-      },
       include: {
-        client: true,
+        subscriptions: {
+          include: {
+            client: true,
+          },
+        },
       },
     });
-    res.json(serials);
+
+    const serialsWithClients = serials.map((serial) => ({
+      ...serial,
+      clients: serial.subscriptions.map((subscription) => subscription.client),
+    }));
+
+    res.json(serialsWithClients);
   } catch (error) {
     console.error("Error fetching serials:", error);
     res.status(500).json({ error: "Could not fetch serials" });
@@ -94,14 +138,24 @@ router.get("/serials", adminAuth, async (req, res) => {
 });
 
 // 5 - Endpoint to read all clients
-router.get("/clients", adminAuth, async (req, res) => {
+router.get("/clients", async (req, res) => {
   try {
     const clients = await prisma.client.findMany({
       include: {
-        serial: true,
+        subscriptions: {
+          include: {
+            serial: true,
+          },
+        },
       },
     });
-    res.json(clients);
+
+    const clientsWithSerials = clients.map((client) => ({
+      ...client,
+      serials: client.subscriptions.map((subscription) => subscription.serial),
+    }));
+
+    res.json(clientsWithSerials);
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({ error: "Could not fetch clients" });

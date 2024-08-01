@@ -425,8 +425,8 @@ router.post("/register", async (req, res) => {
 
     const createSubscription = await prisma.subscription.create({
       data: {
-        clientId: parseInt(updateSerial.id),
-        serialId: parseInt(existingSerial.id),
+        clientId: parseInt(existingClient.id),
+        serialId: parseInt(updateSerial.id),
         platform,
         device,
       },

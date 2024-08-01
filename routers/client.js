@@ -307,13 +307,12 @@ router.post("/check-client", async (req, res) => {
   try {
     const existingSerial = await prisma.serial.findFirst({
       where: { serial },
+      include: {
+        subscriptions: true,
+      },
     });
 
-    if (
-      !existingSerial ||
-      !existingSerial.active ||
-      existingSerial.registeredAt
-    ) {
+    if (!existingSerial || !existingSerial.active) {
       return res.status(400).json({ message: "Invalid or inactive serial" });
     }
 
@@ -322,6 +321,14 @@ router.post("/check-client", async (req, res) => {
         phone: phone,
       },
     });
+
+    if (
+      existingSerial &&
+      existingSerial.registeredAt &&
+      existingSerial?.subscriptions[0]?.clientId !== parseInt(client?.id)
+    ) {
+      return res.status(400).json({ message: "Invalid or inactive serial" });
+    }
 
     if (client) {
       res.json({ success: true, client });

@@ -450,7 +450,9 @@ router.post("/register", async (req, res) => {
 // Endpoint to fetch all subscriptions
 router.get("/subscriptions", async (req, res) => {
   try {
-    const subscriptions = await prisma.subscription.findMany({
+    const subscriptions = await prisma.subscription.findMany
+    const q = req.query.q;
+    ({
       include: {
         client: true,
         serial: true,

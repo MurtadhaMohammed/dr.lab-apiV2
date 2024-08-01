@@ -275,6 +275,23 @@ router.post("/logout", async (req, res) => {
     res.status(500).json({ error: "Could not register device" });
   }
 });
+// Endpoint to check if a serial is expired
+router.post("/check-serial-expiration", async (req, res) => {
+  const { serialId } = req.body;
+  try {
+    const serial = await prisma.serial.findFirst({
+      where: { id: serialId },  // Ensure you're using 'id' not 'serialId'
+    });
+    if (!serial) {
+      return res.status(404).json({ message: "Serial not found" });
+    }
+    const expired = isSerialExpired(serial);
+    res.json({ expired, serial });
+  } catch (error) {
+    console.error("Error checking serial expiration:", error);
+    res.status(500).json({ error: "An error occurred while checking the serial expiration" });
+  }
+});
 
 function isSerialExpired(serial) {
   try {
@@ -429,5 +446,23 @@ router.post("/register", async (req, res) => {
       .json({ message: "An error occurred while checking the client" });
   }
 });
+
+// Endpoint to fetch all subscriptions
+router.get("/subscriptions", async (req, res) => {
+  try {
+    const subscriptions = await prisma.subscription.findMany({
+      include: {
+        client: true,
+        serial: true,
+      },
+    });
+
+    res.json(subscriptions);
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    res.status(500).json({ error: "Could not fetch subscriptions" });
+  }
+});
+
 
 module.exports = router;

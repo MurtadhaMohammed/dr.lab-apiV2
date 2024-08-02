@@ -18,6 +18,7 @@ model Admin {
 model Client {
   id            Int            @id @default(autoincrement())
   name          String
+  labName       String?
   phone         String         @unique
   email         String?
   address       String?

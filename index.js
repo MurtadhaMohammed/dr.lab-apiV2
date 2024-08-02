@@ -3,10 +3,17 @@ var cors = require("cors");
 const app = express();
 const port = 3000;
 const adminRouter = require("./routers/admin");
-const clientRouter = require('./routers/client');
-
+const clientRouter = require("./routers/client");
+const whatsappRouter = require("./routers/whatsapp");
+const fileUpload = require("express-fileupload");
 
 require("dotenv").config();
+
+app.use(
+  fileUpload({
+    limits: { fileSize: 50 * 1024 * 1024 },
+  })
+);
 
 app.use(cors());
 app.use(express.json());
@@ -17,7 +24,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/admin", adminRouter);
-app.use('/api/client', clientRouter);
+app.use("/api/client", clientRouter);
+app.use("/api/send", whatsappRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

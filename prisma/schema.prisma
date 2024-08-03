@@ -38,13 +38,23 @@ model Serial {
   subscriptions Subscription[]
 }
 
+model Feature {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  note      String?
+  price     Float    @default(0)
+  createdAt DateTime @default(now())
+}
+
 model Subscription {
   id        Int      @id @default(autoincrement())
   clientId  Int
   serialId  Int
   platform  String?
   device    String?
+  price     Float    @default(0)
   createdAt DateTime @default(now())
   client    Client   @relation(fields: [clientId], references: [id])
   serial    Serial   @relation(fields: [serialId], references: [id])
+  features  Json?
 }

@@ -276,27 +276,22 @@ router.post("/logout", async (req, res) => {
   }
 });
 // Endpoint to check if a serial is expired
-router.get("/check-serial-expiration", async (req, res) => {
-  const { serialId } = req.query;
-
+router.post("/check-serial-expiration", async (req, res) => {
+  const { serialId } = req.body;
   try {
     const serial = await prisma.serial.findFirst({
-      where: { serialId },
+      where: { id: serialId },  // Ensure you're using 'id' not 'serialId'
     });
-
     if (!serial) {
       return res.status(404).json({ message: "Serial not found" });
     }
-
     const expired = isSerialExpired(serial);
-
     res.json({ expired, serial });
   } catch (error) {
     console.error("Error checking serial expiration:", error);
     res.status(500).json({ error: "An error occurred while checking the serial expiration" });
   }
 });
-
 
 function isSerialExpired(serial) {
   try {

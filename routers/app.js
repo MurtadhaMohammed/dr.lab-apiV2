@@ -59,9 +59,6 @@ router.post("/register-device", async (req, res) => {
   }
 });
 
-
-
-
 // 6 - Endpoint to check if a serial has a client
 router.get("/serial-has-client/:serialId", async (req, res) => {
   try {
@@ -122,7 +119,41 @@ router.put("/update-client", async (req, res) => {
     res.status(500).json({ error: "Could not update client" });
   }
 });
+router.post("/register", async (req, res) => {
+  const { serial, phone, name, email, address } = req.body;
+  try {
+    const existingSerial = await prisma.serial.findFirst({
+      where: { serial },
+    });
 
+    if (!existingSerial || !existingSerial.active) {
+      return res.status(400).json({ message: "Invalid or inactive serial" });
+    }
+
+    const existingClient = await prisma.client.findFirst({
+      where: { phone },
+    });
+
+    if (existingClient) {
+      return res.status(400).json({ message: "Client already exists" });
+    }
+
+    const newClient = await prisma.client.create({
+      data: {
+        name,
+        phone,
+        email,
+        address,
+        serialId: existingSerial.id,
+      },
+    });
+
+    res.json(newClient);
+  } catch (error) {
+    console.error("Error registering client:", error);
+    res.status(500).json({ error: "Could not register client" });
+  }
+});
 
 router.post("/logout", async (req, res) => {
   try {

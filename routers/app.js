@@ -7,21 +7,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // 1 - Endpoint to create a serial
-router.post("/create-serial", adminAuth, async (req, res) => {
-  try {
-    const { serial, exp } = req.body;
-    const newSerial = await prisma.serial.create({
-      data: {
-        serial,
-        exp,
-      },
-    });
-    res.json(newSerial);
-  } catch (error) {
-    console.error("Error creating serial:", error);
-    res.status(500).json({ error: "Could not create serial" });
-  }
-});
+
 
 // 2 - Endpoint to register device by checking if serial is valid
 router.post("/register-device", async (req, res) => {
@@ -144,7 +130,9 @@ router.post("/register", async (req, res) => {
         phone,
         email,
         address,
-        serialId: existingSerial.id,
+        serials: {
+          connect: { id: existingSerial.id }
+        },
       },
     });
 
@@ -154,6 +142,7 @@ router.post("/register", async (req, res) => {
     res.status(500).json({ error: "Could not register client" });
   }
 });
+
 
 router.post("/logout", async (req, res) => {
   try {

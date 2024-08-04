@@ -24,7 +24,7 @@ model Client {
   address   String?
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
-  type      ClientType @default(trail)
+  type      ClientType @default(trial)
   serials   Serial[]
   invoices  Invoice[]
 }
@@ -79,6 +79,6 @@ enum InvoiceType {
 }
 
 enum ClientType {
-  trail
+  trial
   paid
 }

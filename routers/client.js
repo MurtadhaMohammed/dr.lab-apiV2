@@ -189,7 +189,7 @@ router.get("/clients", async (req, res) => {
 
     const clientsWithSerials = clients.map((client) => ({
       ...client,
-      serials: client.subscriptions.map((subscription) => subscription.serial),
+      serials: client.invoices.map((invoice) => invoice.serialId),
     }));
 
     res.json(clientsWithSerials);
@@ -377,7 +377,7 @@ router.post("/check-client", async (req, res) => {
     const existingSerial = await prisma.serial.findFirst({
       where: { serial },
       include: {
-        subscriptions: true,
+        invoices: true,
       },
     });
 
@@ -394,9 +394,9 @@ router.post("/check-client", async (req, res) => {
     if (
       existingSerial &&
       existingSerial.registeredAt &&
-      existingSerial?.subscriptions[0]?.clientId !== parseInt(client?.id)
+      existingSerial?.invoices[0]?.clientId !== parseInt(client?.id)
     ) {
-      return res.status(400).json({ message: "Invalid or inactive serial" });
+      return res.status(400).json({ message: "Invalid or inactive serial2" });
     }
 
     if (client) {
@@ -413,7 +413,7 @@ router.post("/check-client", async (req, res) => {
 });
 
 router.post("/register", async (req, res) => {
-  const { client, serial, device, platform, phone } = req.body;
+  const { client, serial, device, phone ,type} = req.body;
   try {
     // Check if the serial is valid and active
     const existingSerial = await prisma.serial.findFirst({
@@ -429,7 +429,7 @@ router.post("/register", async (req, res) => {
     }
 
     // Check if the serial is already registered
-    const existingSubscription = await prisma.subscription.findFirst({
+    const existingInvoice = await prisma.invoice.findFirst({
       where: { serialId: existingSerial.id },
       include: {
         serial: true,
@@ -437,27 +437,27 @@ router.post("/register", async (req, res) => {
       },
     });
 
-    if (existingSubscription && existingSubscription.device !== device) {
+    if (existingInvoice && existingInvoice.device !== device) {
       return res
         .status(400)
         .json({ message: "Serial number is already registered" });
     }
 
     if (
-      existingSubscription &&
-      existingSubscription.device === device &&
+      existingInvoice &&
+      existingInvoice.device === device &&
       !isSerialExpired(existingSerial)
     ) {
-      return res.json(existingSubscription);
+      return res.json(existingInvoice);
     }
 
     if (
-      existingSubscription &&
-      !existingSubscription.device &&
+      existingInvoice &&
+      !existingInvoice.device &&
       !isSerialExpired(existingSerial) &&
-      existingSubscription.client.phone === phone
+      existingInvoice.client.phone === phone
     ) {
-      return res.json(existingSubscription);
+      return res.json(existingInvoice);
     }
 
     if (!existingClient) {
@@ -466,8 +466,8 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    if (!platform && !device) {
-      return res.status(400).json({ message: "Invalid or data" });
+    if (!device) {
+      return res.status(400).json({ message: "Invalid or missing data" });
     }
 
     const updateSerial = await prisma.serial.update({
@@ -477,20 +477,21 @@ router.post("/register", async (req, res) => {
       },
     });
 
-    const createSubscription = await prisma.subscription.create({
+    const createInvoice = await prisma.invoice.create({
       data: {
         clientId: parseInt(existingClient.id),
         serialId: parseInt(updateSerial.id),
-        platform,
+        type,
+        price: existingSerial.price, 
         device,
       },
       include: {
-        serial: true, // Include the serial data in the response
-        client: true, // Include the client data in the response
+        serial: true,
+        client: true, 
       },
     });
 
-    res.json(createSubscription);
+    res.json(createInvoice);
   } catch (error) {
     console.log(error);
     res
@@ -499,10 +500,11 @@ router.post("/register", async (req, res) => {
   }
 });
 
+
 // Endpoint to fetch all subscriptions
-router.get("/subscriptions", async (req, res) => {
+router.get("/invoices", async (req, res) => {
   try {
-    const subscriptions = await prisma.subscription.findMany;
+    const invoices = await prisma.invoice.findMany;
     const q = req.query.q;
     ({
       include: {
@@ -511,10 +513,10 @@ router.get("/subscriptions", async (req, res) => {
       },
     });
 
-    res.json(subscriptions);
+    res.json(invoices);
   } catch (error) {
-    console.error("Error fetching subscriptions:", error);
-    res.status(500).json({ error: "Could not fetch subscriptions" });
+    console.error("Error fetching invoice:", error);
+    res.status(500).json({ error: "Could not fetch invoice" });
   }
 });
 

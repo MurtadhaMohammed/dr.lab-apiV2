@@ -116,23 +116,64 @@ router.get("/serials", async (req, res) => {
   try {
     const serials = await prisma.serial.findMany({
       include: {
-        subscriptions: {
-          include: {
-            client: true,
-          },
+        client: true,
+        invoices: true,
+      },
+    });
+
+    const serialsWithDetails = serials?.map((serial) => ({
+      ...serial,
+      feature: serial?.feature,
+    }));
+
+    res.json(serialsWithDetails);
+  } catch (error) {
+    console.error("Error fetching serials:", error);
+    res.status(500).json({ error: "Could not fetch serials" });
+  }
+});
+
+router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
+  try {
+    const { serialId, featureId } = req.body;
+
+    // Fetch the serial
+    const serial = await prisma.serial.findUnique({
+      where: { id: serialId },
+    });
+
+    if (!serial) {
+      return res.status(404).json({ error: "Serial not found" });
+    }
+
+    // Fetch the feature data from another table
+    const featureData = await prisma.feature.findUnique({
+      where: { id: featureId },
+    });
+
+    if (!featureData) {
+      return res.status(404).json({ error: "Feature not found" });
+    }
+
+    // Update the serial with the new feature
+    const updatedSerial = await prisma.serial.update({
+      where: { id: serialId },
+      data: {
+        feature: {
+          id: featureData.id,
+          name: featureData.name,
+          note: featureData.note,
+          startDate,
+          endDate,
+          price: featureData.price,
         },
       },
     });
 
-    const serialsWithClients = serials.map((serial) => ({
-      ...serial,
-      clients: serial.subscriptions.map((subscription) => subscription.client),
-    }));
-
-    res.json(serialsWithClients);
+    res.json(updatedSerial);
   } catch (error) {
-    console.error("Error fetching serials:", error);
-    res.status(500).json({ error: "Could not fetch serials" });
+    console.error("Error adding feature to serial:", error);
+    res.status(500).json({ error: "Could not add feature to serial" });
   }
 });
 
@@ -141,11 +182,8 @@ router.get("/clients", async (req, res) => {
   try {
     const clients = await prisma.client.findMany({
       include: {
-        subscriptions: {
-          include: {
-            serial: true,
-          },
-        },
+        serials: true,
+        invoices: true,
       },
     });
 
@@ -183,22 +221,34 @@ router.get("/serial-has-client/:serialId", async (req, res) => {
 // 7 - Endpoint to add a new client
 router.post("/add-client", async (req, res) => {
   try {
-    const { name, phone, email, address, serialId } = req.body;
+    const { name, labName, phone, email, address, serialId, type } = req.body;
+
+    // Validate `type` to ensure it is a valid `ClientType`
+    const validTypes = ["trail", "paid"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: "Invalid client type" });
+    }
+
+    // Create a new client
     const newClient = await prisma.client.create({
       data: {
         name,
+        labName,
         phone,
         email,
         address,
-        serialId,
+        type, // Ensure type is one of the valid enum values
+
       },
     });
+
     res.json(newClient);
   } catch (error) {
     console.error("Error adding client:", error);
     res.status(500).json({ error: "Could not add client" });
   }
 });
+
 
 router.put("/update-client", async (req, res) => {
   try {
@@ -467,6 +517,5 @@ router.get("/subscriptions", async (req, res) => {
     res.status(500).json({ error: "Could not fetch subscriptions" });
   }
 });
-
 
 module.exports = router;

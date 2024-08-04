@@ -37,6 +37,19 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.get("/", async (req, res) => {
+  try {
+    // Retrieve all features
+    const features = await prisma.feature.findMany();
+
+    res.json(features);
+  } catch (error) {
+    console.error("Error retrieving features:", error);
+    res.status(500).json({ message: "Error retrieving features" });
+  }
+});
+
+
 // Endpoint to active feature
 router.put("/active-feature", async (req, res) => {
   const { subscriptionId, featureId, price, startDate, endDate } = req.body;

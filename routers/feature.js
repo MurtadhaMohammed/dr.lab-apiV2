@@ -7,7 +7,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 router.post("/", async (req, res) => {
-  const { name, note, price } = req.body;
+  const { name, note } = req.body;
 
   try {
     // Create a new Feature
@@ -15,7 +15,6 @@ router.post("/", async (req, res) => {
       data: {
         name,
         note,
-        price: parseFloat(price) || 0, // Ensure the price is a number
       },
     });
 
@@ -40,11 +39,11 @@ router.post("/", async (req, res) => {
 
 // Endpoint to active feature
 router.put("/active-feature", async (req, res) => {
-  const { subscriptionId, featureId } = req.params;
+  const { subscriptionId, featureId, price, startDate, endDate } = req.body;
 
   try {
     // Retrieve the feature by its ID
-    const feature = await prisma.feature.findUnique({
+    let feature = await prisma.feature.findUnique({
       where: {
         id: parseInt(featureId),
       },
@@ -66,6 +65,7 @@ router.put("/active-feature", async (req, res) => {
     }
 
     // Add the feature ID to the subscription's features array
+    feature = { ...feature, startDate, endDate, price };
     const updatedFeatures = subscription.features
       ? [...subscription.features, feature]
       : [feature];

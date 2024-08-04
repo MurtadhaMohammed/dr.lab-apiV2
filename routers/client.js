@@ -468,53 +468,5 @@ router.get("/subscriptions", async (req, res) => {
   }
 });
 
-// Endpoint to active feature
-router.put("/active-feature", async (req, res) => {
-  const { subscriptionId, featureId } = req.params;
-
-  try {
-    // Retrieve the feature by its ID
-    const feature = await prisma.feature.findUnique({
-      where: {
-        id: parseInt(featureId),
-      },
-    });
-
-    if (!feature) {
-      return res.status(404).json({ message: "Feature not found" });
-    }
-
-    // Retrieve the subscription by its ID
-    const subscription = await prisma.subscription.findUnique({
-      where: {
-        id: parseInt(subscriptionId),
-      },
-    });
-
-    if (!subscription) {
-      return res.status(404).json({ message: "Subscription not found" });
-    }
-
-    // Add the feature ID to the subscription's features array
-    const updatedFeatures = subscription.features
-      ? [...subscription.features, feature]
-      : [feature];
-
-    // Update the subscription with the new features array
-    const updatedSubscription = await prisma.subscription.update({
-      where: {
-        id: parseInt(subscriptionId),
-      },
-      data: {
-        features: updatedFeatures,
-      },
-    });
-
-    res.json(updatedSubscription);
-  } catch (error) {
-    console.error("Error updating subscription:", error);
-    res.status(500).json({ message: "Error updating subscription" });
-  }
-});
 
 module.exports = router;

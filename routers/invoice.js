@@ -58,7 +58,7 @@ router.post("/create-invoice", async (req, res) => {
   });
   
 
-router.get("/invoice", async (req, res) => {
+router.get("/get-invoices", async (req, res) => {
   try {
     const invoices = await prisma.invoice.findMany({
       include: {

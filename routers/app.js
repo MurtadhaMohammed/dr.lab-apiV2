@@ -248,6 +248,8 @@ router.post("/check-client", async (req, res) => {
         success: true, 
         client, 
         serialId: updatedSerial.id,
+        device,
+        platform,
         exp: updatedSerial.exp // Assuming `exp` is a field in your serial model
       });
     } else {

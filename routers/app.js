@@ -198,7 +198,7 @@ function isSerialExpired(serial) {
 }
 
 router.post("/check-client", async (req, res) => {
-  const { serial } = req.body;
+  const { serial, device, platform } = req.body;
   try {
     // Find the serial and include the related invoices and client data
     const existingSerial = await prisma.serial.findFirst({
@@ -218,8 +218,22 @@ router.post("/check-client", async (req, res) => {
     const client = existingSerial.client;
 
     if (client) {
-      // Serial has an associated client, return the client data
-      return res.json({ success: true, client });
+      // Update the serial with device and platform information
+      const updatedSerial = await prisma.serial.update({
+        where: { id: existingSerial.id },
+        data: {
+          device,
+          platform,
+        },
+      });
+
+      // Return the client data, updated serial, and serial details
+      return res.json({ 
+        success: true, 
+        client, 
+        serialId: updatedSerial.id,
+        exp: updatedSerial.exp // Assuming `exp` is a field in your serial model
+      });
     } else {
       // Serial does not have an associated client
       return res.status(404).json({ success: false, message: "Client not found" });
@@ -229,6 +243,7 @@ router.post("/check-client", async (req, res) => {
     res.status(500).json({ error: "An error occurred while checking the client" });
   }
 });
+
 
 
 module.exports = router;

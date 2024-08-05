@@ -34,6 +34,7 @@ model Serial {
   serial       String    @unique
   exp          Int
   active       Boolean   @default(true)
+  platform     String?
   device       String?
   startAt      DateTime?
   registeredAt DateTime?

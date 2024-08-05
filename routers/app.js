@@ -140,17 +140,33 @@ router.post("/register", async (req, res) => {
 
 router.post("/logout", async (req, res) => {
   try {
-    const { serialId } = req.body;
-    const updatedSerial = await prisma.subscription.update({
-      where: { serialId },
+    const { serial } = req.body;
+    
+    // Find the serial by the serial number
+    const existingSerial = await prisma.serial.findFirst({
+      where: { serial },
+    });
+
+    if (!existingSerial) {
+      return res.status(404).json({ error: "Serial not found" });
+    }
+
+    // Update the serial to remove the device
+    const updatedSerial = await prisma.serial.update({
+      where: { id: existingSerial.id },
       data: { device: null },
     });
+
     res.json(updatedSerial);
   } catch (error) {
-    console.error("Error registering device:", error);
-    res.status(500).json({ error: "Could not register device" });
+    console.error("Error removing device from serial:", error);
+    res.status(500).json({ error: "Could not remove device from serial" });
   }
 });
+
+
+
+
 // Endpoint to check if a serial is expired
 router.post("/check-serial-expiration", async (req, res) => {
   const { serialId } = req.body;

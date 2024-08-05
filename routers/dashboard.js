@@ -23,18 +23,18 @@ router.post("/create-serial", async (req, res) => {
 });
 
 // 3 - Endpoint to activate/deactivate a serial
-router.patch("/serial/:id/activate", adminAuth, async (req, res) => {
+router.patch("/client/:id/activate", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { active } = req.body;
-    const updatedSerial = await prisma.serial.update({
+    const updatedClient = await prisma.client.update({
       where: { id: parseInt(id) },
       data: { active },
     });
-    res.json(updatedSerial);
+    res.json(updatedClient);
   } catch (error) {
-    console.error("Error updating serial activation:", error);
-    res.status(500).json({ error: "Could not update serial activation" });
+    console.error("Error updating client activation:", error);
+    res.status(500).json({ error: "Could not update client activation" });
   }
 });
 
@@ -195,11 +195,14 @@ router.put("/add-serial-to-client", async (req, res) => {
 router.put("/update-client/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, address } = req.body;
+    const { name,labName,type,active, phone, email, address } = req.body;
     const updatedClient = await prisma.client.update({
       where: { id: parseInt(id) },
       data: {
         name,
+        labName,
+        type : type === "trial" ? "trial" : "paid",
+        active,
         phone,
         email,
         address,

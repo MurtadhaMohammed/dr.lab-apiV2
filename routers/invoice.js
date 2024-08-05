@@ -6,7 +6,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 router.post("/create-invoice", async (req, res) => {
-    const { phone, serial, amount } = req.body;
+    const { phone, serial, price } = req.body;
   
     try {
       // Find the serial using the serial number
@@ -36,7 +36,7 @@ router.post("/create-invoice", async (req, res) => {
       // Create the invoice and connect it to the client and serial
       const newInvoice = await prisma.invoice.create({
         data: {
-          amount,
+          price,
           clientId: client.id, // Use the found client's ID
           serialId: foundSerial.id, // Use the found serial's ID
         },

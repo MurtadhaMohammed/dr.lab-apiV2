@@ -155,6 +155,43 @@ router.post("/add-client", async (req, res) => {
   }
 });
 
+
+router.put("/add-serial-to-client", async (req, res) => {
+    try {
+        const { clientId, serialId } = req.body;
+    
+        const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        });
+    
+        if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+        }
+    
+        const serial = await prisma.serial.findUnique({
+        where: { id: serialId },
+        });
+    
+        if (!serial) {
+        return res.status(404).json({ error: "Serial not found" });
+        }
+    
+        const updatedClient = await prisma.client.update({
+        where: { id: clientId },
+        data: {
+            serials: {
+            connect: { id: serialId },
+            },
+        },
+        });
+    
+        res.json(updatedClient);
+    } catch (error) {
+        console.error("Error adding serial to client:", error);
+        res.status(500).json({ error: "Could not add serial to client" });
+    }
+    });
+
 router.put("/update-client/:id", async (req, res) => {
   try {
     const { id } = req.params;

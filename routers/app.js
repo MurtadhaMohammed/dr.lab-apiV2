@@ -108,16 +108,8 @@ router.put("/update-client", async (req, res) => {
 
 
 router.post("/register", async (req, res) => {
-  const { serial, phone, name, email, address } = req.body;
+  const { phone,labName, name, email, address } = req.body;
   try {
-    const existingSerial = await prisma.serial.findFirst({
-      where: { serial },
-    });
-
-    if (!existingSerial || !existingSerial.active) {
-      return res.status(400).json({ message: "Invalid or inactive serial" });
-    }
-
     const existingClient = await prisma.client.findFirst({
       where: { phone },
     });
@@ -129,12 +121,11 @@ router.post("/register", async (req, res) => {
     const newClient = await prisma.client.create({
       data: {
         name,
+        labName,
         phone,
         email,
         address,
-        serials: {
-          connect: { id: existingSerial.id }
-        },
+        type: 'trial', // Set the client type to 'trial'
       },
     });
 
@@ -144,6 +135,7 @@ router.post("/register", async (req, res) => {
     res.status(500).json({ error: "Could not register client" });
   }
 });
+
 
 
 router.post("/logout", async (req, res) => {

@@ -23,7 +23,7 @@ router.post("/create-serial", async (req, res) => {
 });
 
 // 3 - Endpoint to activate/deactivate a serial
-router.patch("/client/:id/activate", adminAuth, async (req, res) => {
+router.patch("/client/:id/activate", async (req, res) => {
   try {
     const { id } = req.params;
     const { active } = req.body;
@@ -303,6 +303,42 @@ router.post("/register-invoice", async (req, res) => {
     }
   });
 
+
+router.post("/add-invoice", async (req, res) => {
+    try {
+        const { clientId, serialId, type, price } = req.body;
+    
+        const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        });
+    
+        if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+        }
+    
+        const serial = await prisma.serial.findUnique({
+        where: { id: serialId },
+        });
+    
+        if (!serial) {
+        return res.status(404).json({ error: "Serial not found" });
+        }
+    
+        const newInvoice = await prisma.invoice.create({
+        data: {
+            clientId,
+            serialId,
+            type,
+            price,
+        },
+        });
+    
+        res.json(newInvoice);
+    } catch (error) {
+        console.error("Error adding invoice:", error);
+        res.status(500).json({ error: "Could not add invoice" });
+    }
+    });
 router.get("/invoices", async (req, res) => {
   try {
     const invoices = await prisma.invoice.findMany;

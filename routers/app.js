@@ -105,6 +105,8 @@ router.put("/update-client", async (req, res) => {
     res.status(500).json({ error: "Could not update client" });
   }
 });
+
+
 router.post("/register", async (req, res) => {
   const { serial, phone, name, email, address } = req.body;
   try {
@@ -204,7 +206,7 @@ function isSerialExpired(serial) {
 }
 
 router.post("/check-client", async (req, res) => {
-  const { phone, serial } = req.body;
+  const { serial } = req.body;
   try {
     const existingSerial = await prisma.serial.findFirst({
       where: { serial },
@@ -217,11 +219,11 @@ router.post("/check-client", async (req, res) => {
       return res.status(400).json({ message: "Invalid or inactive serial" });
     }
 
-    const client = await prisma.client.findFirst({
-      where: {
-        phone: phone,
-      },
-    });
+    // const client = await prisma.client.findFirst({
+    //   where: {
+    //     phone: phone,
+    //   },
+    // });
 
     if (
       existingSerial &&
@@ -243,9 +245,5 @@ router.post("/check-client", async (req, res) => {
       .json({ error: "An error occurred while checking the client" });
   }
 });
-
-
-
-
 
 module.exports = router;

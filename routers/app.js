@@ -223,21 +223,21 @@ router.post("/check-client", async (req, res) => {
     //   where: {
     //     phone: phone,
     //   },
-    // });
+    // });  
 
     if (
       existingSerial &&
-      existingSerial.registeredAt &&
-      existingSerial?.invoices[0]?.clientId !== parseInt(client?.id)
+      existingSerial.registeredAt 
+      // existingSerial?.invoices[0]?.clientId !== parseInt(client?.id)
     ) {
       return res.status(400).json({ message: "Invalid or inactive serial2" });
     }
 
-    if (client) {
-      res.json({ success: true, client });
-    } else {
-      res.json({ success: false, message: "Client not found" });
-    }
+    // if (client) {
+    //   res.json({ success: true, client });
+    // } else {
+    //   res.json({ success: false, message: "Client not found" });
+    // }
   } catch (error) {
     console.log(error);
     res

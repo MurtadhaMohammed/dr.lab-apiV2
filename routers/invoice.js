@@ -58,20 +58,30 @@ router.post("/create-invoice", async (req, res) => {
   });
   
 
-router.get("/invoices", async (req, res) => {
-  try {
-    const invoices = await prisma.invoice.findMany({
-      include: {
-        client: true,
-        serial: true,
-      },
-    });
-
-    res.json(invoices);
-  } catch (error) {
-    console.error("Error fetching invoices:", error);
-    res.status(500).json({ error: "Could not fetch invoices" });
-  }
-});
+  router.get("/invoices", async (req, res) => {
+    try {
+      const { name, phone, serial } = req.query;
+  
+      const invoices = await prisma.invoice.findMany({
+        where: {
+          AND: [
+            name ? { client: { name: { contains: name, mode: 'insensitive' } } } : {},
+            phone ? { client: { phone: { contains: phone, mode: 'insensitive' } } } : {},
+            serial ? { serial: { serial: { contains: serial, mode: 'insensitive' } } } : {},
+          ],
+        },
+        include: {
+          client: true,
+          serial: true,
+        },
+      });
+  
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ error: "Could not fetch invoices" });
+    }
+  });
+  
 
 module.exports = router;

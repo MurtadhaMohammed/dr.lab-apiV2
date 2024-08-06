@@ -41,7 +41,15 @@ router.patch("/client/:id/activate", async (req, res) => {
 // 4 - Endpoint to read all serials
 router.get("/serials", async (req, res) => {
   try {
+    const { search } = req.query;
+
     const serials = await prisma.serial.findMany({
+      where: {
+        serial: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
       include: {
         client: true,
         invoices: true,
@@ -59,6 +67,7 @@ router.get("/serials", async (req, res) => {
     res.status(500).json({ error: "Could not fetch serials" });
   }
 });
+
 
 router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
   try {
@@ -107,7 +116,15 @@ router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
 // 5 - Endpoint to read all clients
 router.get("/clients", async (req, res) => {
   try {
+    const { name, phone } = req.query;
+
     const clients = await prisma.client.findMany({
+      where: {
+        AND: [
+          name ? { name: { contains: name, mode: 'insensitive' } } : {},
+          phone ? { phone: { contains: phone, mode: 'insensitive' } } : {},
+        ],
+      },
       include: {
         serials: true,
         invoices: true,
@@ -302,59 +319,6 @@ router.post("/register-invoice", async (req, res) => {
         .json({ message: "An error occurred while checking the client" });
     }
   });
-
-
-router.post("/add-invoice", async (req, res) => {
-    try {
-        const { clientId, serialId, type, price } = req.body;
     
-        const client = await prisma.client.findUnique({
-        where: { id: clientId },
-        });
-    
-        if (!client) {
-        return res.status(404).json({ error: "Client not found" });
-        }
-    
-        const serial = await prisma.serial.findUnique({
-        where: { id: serialId },
-        });
-    
-        if (!serial) {
-        return res.status(404).json({ error: "Serial not found" });
-        }
-    
-        const newInvoice = await prisma.invoice.create({
-        data: {
-            clientId,
-            serialId,
-            type,
-            price,
-        },
-        });
-    
-        res.json(newInvoice);
-    } catch (error) {
-        console.error("Error adding invoice:", error);
-        res.status(500).json({ error: "Could not add invoice" });
-    }
-    });
-router.get("/invoices", async (req, res) => {
-  try {
-    const invoices = await prisma.invoice.findMany;
-    const q = req.query.q;
-    ({
-      include: {
-        client: true,
-        serial: true,
-      },
-    });
-
-    res.json(invoices);
-  } catch (error) {
-    console.error("Error fetching invoice:", error);
-    res.status(500).json({ error: "Could not fetch invoice" });
-  }
-});
 
 module.exports = router;

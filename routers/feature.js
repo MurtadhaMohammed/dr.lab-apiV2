@@ -40,8 +40,12 @@ router.post("/add-feature", async (req, res) => {
 
 router.get("/features", async (req, res) => {
   try {
-    // Retrieve all features
-    const features = await prisma.feature.findMany();
+    const { name } = req.query;
+
+    // Retrieve features with optional name filtering
+    const features = await prisma.feature.findMany({
+      where: name ? { name: { contains: name, mode: 'insensitive' } } : {},
+    });
 
     res.json(features);
   } catch (error) {
@@ -49,6 +53,7 @@ router.get("/features", async (req, res) => {
     res.status(500).json({ message: "Error retrieving features" });
   }
 });
+
 
 
 // Endpoint to active feature

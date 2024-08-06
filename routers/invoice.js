@@ -64,7 +64,7 @@ router.post("/create-invoice", async (req, res) => {
   
       const invoices = await prisma.invoice.findMany({
         where: {
-          AND: [
+          OR: [
             name ? { client: { name: { contains: name, mode: 'insensitive' } } } : {},
             phone ? { client: { phone: { contains: phone, mode: 'insensitive' } } } : {},
             serial ? { serial: { serial: { contains: serial, mode: 'insensitive' } } } : {},

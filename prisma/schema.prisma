@@ -69,7 +69,7 @@ model Feature {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   note      String?
-  price     Float
+  price     Float?
   createdAt DateTime @default(now())
 }
 

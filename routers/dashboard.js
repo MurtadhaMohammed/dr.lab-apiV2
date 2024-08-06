@@ -120,7 +120,7 @@ router.get("/clients", async (req, res) => {
 
     const clients = await prisma.client.findMany({
       where: {
-        OR: [
+        AND: [
           name ? { name: { contains: name, mode: 'insensitive' } } : {},
           phone ? { phone: { contains: phone, mode: 'insensitive' } } : {},
         ],

@@ -6,7 +6,7 @@ const dayjs = require("dayjs");
 const router = express.Router();
 const prisma = new PrismaClient();
 
-router.post("/", async (req, res) => {
+router.post("/add-feature", async (req, res) => {
   const { name, note } = req.body;
 
   try {
@@ -37,7 +37,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/features", async (req, res) => {
   try {
     // Retrieve all features
     const features = await prisma.feature.findMany();

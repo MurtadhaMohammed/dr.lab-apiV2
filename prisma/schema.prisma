@@ -57,7 +57,7 @@ model Invoice {
   serial    Serial      @relation(fields: [serialId], references: [id])
 }
 
-model FeaturInvoice {
+model FeatureInvoice {
   id                 Int      @id @default(autoincrement())
   registeredFeatures Json?
   totalPrice         Float

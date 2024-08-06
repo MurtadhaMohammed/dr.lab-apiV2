@@ -76,14 +76,19 @@ router.put("/update-client", async (req, res) => {
       },
     });
 
-    if (!serial) {
-      return res.status(404).json({ error: "Serial not found" });
-    }
+    let existingClient;
 
-    const existingClient = serial.client;
+    if (serial) {
+      existingClient = serial.client;
+    } else {
+      // If no serial is found, find the client directly by the phone number
+      existingClient = await prisma.client.findFirst({
+        where: { phone },
+      });
 
-    if (!existingClient) {
-      return res.status(404).json({ error: "Client not found for the given device" });
+      if (!existingClient) {
+        return res.status(404).json({ error: "Client not found" });
+      }
     }
 
     // Update the client details

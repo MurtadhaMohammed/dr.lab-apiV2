@@ -7,7 +7,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 router.post("/add-feature", async (req, res) => {
-  const { name, note } = req.body;
+  const { name, note ,price} = req.body;
 
   try {
     // Create a new Feature
@@ -15,10 +15,11 @@ router.post("/add-feature", async (req, res) => {
       data: {
         name,
         note,
+        price,
       },
     });
 
-    res.status(201).json(newFeature);
+    res.status(200).json(newFeature);
   } catch (error) {
     console.error("Error creating feature:", error);
 

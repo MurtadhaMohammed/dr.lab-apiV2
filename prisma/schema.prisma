@@ -22,7 +22,6 @@ model Client {
   phone     String     @unique
   email     String?
   address   String?
-  device    String?
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
   type      ClientType @default(trial)

@@ -47,7 +47,7 @@ router.get("/serials", async (req, res) => {
       where: {
         serial: {
           contains: search,
-          mode: 'insensitive',
+          mode: "insensitive",
         },
       },
       include: {
@@ -67,7 +67,6 @@ router.get("/serials", async (req, res) => {
     res.status(500).json({ error: "Could not fetch serials" });
   }
 });
-
 
 router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
   try {
@@ -120,10 +119,7 @@ router.get("/clients", async (req, res) => {
 
     const clients = await prisma.client.findMany({
       where: {
-        AND: [
-          name ? { name: { contains: name, mode: 'insensitive' } } : {},
-          phone ? { phone: { contains: phone, mode: 'insensitive' } } : {},
-        ],
+        name: { contains: name, mode: "insensitive" },
       },
       include: {
         serials: true,
@@ -146,7 +142,7 @@ router.get("/clients", async (req, res) => {
 // 7 - Endpoint to add a new client
 router.post("/add-client", async (req, res) => {
   try {
-    const { name, labName, phone, email, address, serialId, type } = req.body;
+    const { name, labName, phone, email, address, device, type } = req.body;
 
     const validTypes = ["trial", "paid"];
     if (!validTypes.includes(type)) {
@@ -161,7 +157,8 @@ router.post("/add-client", async (req, res) => {
         phone,
         email,
         address,
-        type:type === "trial" ? "trial" : "paid",
+        device,
+        type: type === "trial" ? "trial" : "paid",
       },
     });
 
@@ -172,53 +169,52 @@ router.post("/add-client", async (req, res) => {
   }
 });
 
-
 router.put("/add-serial-to-client", async (req, res) => {
-    try {
-        const { clientId, serialId } = req.body;
-    
-        const client = await prisma.client.findUnique({
-        where: { id: clientId },
-        });
-    
-        if (!client) {
-        return res.status(404).json({ error: "Client not found" });
-        }
-    
-        const serial = await prisma.serial.findUnique({
-        where: { id: serialId },
-        });
-    
-        if (!serial) {
-        return res.status(404).json({ error: "Serial not found" });
-        }
-    
-        const updatedClient = await prisma.client.update({
-        where: { id: clientId },
-        data: {
-            serials: {
-            connect: { id: serialId },
-            },
-        },
-        });
-    
-        res.json(updatedClient);
-    } catch (error) {
-        console.error("Error adding serial to client:", error);
-        res.status(500).json({ error: "Could not add serial to client" });
-    }
+  try {
+    const { clientId, serialId } = req.body;
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
     });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    const serial = await prisma.serial.findUnique({
+      where: { id: serialId },
+    });
+
+    if (!serial) {
+      return res.status(404).json({ error: "Serial not found" });
+    }
+
+    const updatedClient = await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        serials: {
+          connect: { id: serialId },
+        },
+      },
+    });
+
+    res.json(updatedClient);
+  } catch (error) {
+    console.error("Error adding serial to client:", error);
+    res.status(500).json({ error: "Could not add serial to client" });
+  }
+});
 
 router.put("/update-client/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name,labName,type,active, phone, email, address } = req.body;
+    const { name, labName, type, active, phone, email, address } = req.body;
     const updatedClient = await prisma.client.update({
       where: { id: parseInt(id) },
       data: {
         name,
         labName,
-        type : type === "trial" ? "trial" : "paid",
+        type: type === "trial" ? "trial" : "paid",
         active,
         phone,
         email,
@@ -233,92 +229,91 @@ router.put("/update-client/:id", async (req, res) => {
 });
 
 router.post("/register-invoice", async (req, res) => {
-    const { client, serial, device, phone ,type} = req.body;
-    try {
-      // Check if the serial is valid and active
-      const existingSerial = await prisma.serial.findFirst({
-        where: { serial },
-      });
-  
-      let existingClient = await prisma.client.findFirst({
-        where: { phone },
-      });
-  
-      if (!existingSerial || !existingSerial.active) {
-        return res.status(400).json({ message: "Invalid or inactive serial" });
-      }
-  
-      // Check if the serial is already registered
-      const existingInvoice = await prisma.invoice.findFirst({
-        where: { serialId: existingSerial.id },
-        include: {
-          serial: true,
-          client: true,
-        },
-      });
-  
-      if (existingInvoice && existingInvoice.device !== device) {
-        return res
-          .status(400)
-          .json({ message: "Serial number is already registered" });
-      }
-  
-      if (
-        existingInvoice &&
-        existingInvoice.device === device &&
-        !isSerialExpired(existingSerial)
-      ) {
-        return res.json(existingInvoice);
-      }
-  
-      if (
-        existingInvoice &&
-        !existingInvoice.device &&
-        !isSerialExpired(existingSerial) &&
-        existingInvoice.client.phone === phone
-      ) {
-        return res.json(existingInvoice);
-      }
-  
-      if (!existingClient) {
-        existingClient = await prisma.client.create({
-          data: client,
-        });
-      }
-  
-      if (!device) {
-        return res.status(400).json({ message: "Invalid or missing data" });
-      }
-  
-      const updateSerial = await prisma.serial.update({
-        where: { id: parseInt(existingSerial.id) },
-        data: {
-          registeredAt: dayjs().toISOString(), 
-        },
-      });
-  
-      const createInvoice = await prisma.invoice.create({
-        data: {
-          clientId: parseInt(existingClient.id),
-          serialId: parseInt(updateSerial.id),
-          type,
-          price: existingSerial.price, 
-          device,
-        },
-        include: {
-          serial: true,
-          client: true, 
-        },
-      });
-  
-      res.json(createInvoice);
-    } catch (error) {
-      console.log(error);
-      res
-        .status(500)
-        .json({ message: "An error occurred while checking the client" });
+  const { client, serial, device, phone, type } = req.body;
+  try {
+    // Check if the serial is valid and active
+    const existingSerial = await prisma.serial.findFirst({
+      where: { serial },
+    });
+
+    let existingClient = await prisma.client.findFirst({
+      where: { phone },
+    });
+
+    if (!existingSerial || !existingSerial.active) {
+      return res.status(400).json({ message: "Invalid or inactive serial" });
     }
-  });
-    
+
+    // Check if the serial is already registered
+    const existingInvoice = await prisma.invoice.findFirst({
+      where: { serialId: existingSerial.id },
+      include: {
+        serial: true,
+        client: true,
+      },
+    });
+
+    if (existingInvoice && existingInvoice.device !== device) {
+      return res
+        .status(400)
+        .json({ message: "Serial number is already registered" });
+    }
+
+    if (
+      existingInvoice &&
+      existingInvoice.device === device &&
+      !isSerialExpired(existingSerial)
+    ) {
+      return res.json(existingInvoice);
+    }
+
+    if (
+      existingInvoice &&
+      !existingInvoice.device &&
+      !isSerialExpired(existingSerial) &&
+      existingInvoice.client.phone === phone
+    ) {
+      return res.json(existingInvoice);
+    }
+
+    if (!existingClient) {
+      existingClient = await prisma.client.create({
+        data: client,
+      });
+    }
+
+    if (!device) {
+      return res.status(400).json({ message: "Invalid or missing data" });
+    }
+
+    const updateSerial = await prisma.serial.update({
+      where: { id: parseInt(existingSerial.id) },
+      data: {
+        registeredAt: dayjs().toISOString(),
+      },
+    });
+
+    const createInvoice = await prisma.invoice.create({
+      data: {
+        clientId: parseInt(existingClient.id),
+        serialId: parseInt(updateSerial.id),
+        type,
+        price: existingSerial.price,
+        device,
+      },
+      include: {
+        serial: true,
+        client: true,
+      },
+    });
+
+    res.json(createInvoice);
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while checking the client" });
+  }
+});
 
 module.exports = router;

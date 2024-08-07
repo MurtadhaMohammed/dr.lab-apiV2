@@ -110,16 +110,48 @@ router.put("/update-client", async (req, res) => {
   }
 });
 
+const generateUniqueSerial = async () => {
+  
+  let serial = Math.floor(10000000 + Math.random() * 90000000).toString();
+  let existingSerial;
+
+  do {
+    existingSerial = await prisma.serial.findFirst({
+      where: { serial },
+    });
+  } while (existingSerial);
+  console.log(serial);
+
+  return serial;
+};
 
 router.post("/register", async (req, res) => {
-  const { phone,labName, name, email, address } = req.body;
+  const { phone, labName, name, email, address, device } = req.body;
+  
   try {
+    const newSerial = await generateUniqueSerial();
+
+    const createtrial = await prisma.serial.create({
+      data: {
+        serial: newSerial,
+        exp: 7
+      },
+    });
+
     const existingClient = await prisma.client.findFirst({
       where: { phone },
     });
 
+    const deviceId = await prisma.client.findFirst({
+      where: { device },
+    });
+
     if (existingClient) {
       return res.status(400).json({ message: "Client already exists" });
+    }
+
+    if (deviceId) {
+      return res.status(400).json({ message: "Device already exists" });
     }
 
     const newClient = await prisma.client.create({
@@ -129,7 +161,11 @@ router.post("/register", async (req, res) => {
         phone,
         email,
         address,
+        device,
         type: 'trial', // Set the client type to 'trial'
+        serial: {
+          connect: { id: createtrial.id },
+        },
       },
     });
 
@@ -139,8 +175,6 @@ router.post("/register", async (req, res) => {
     res.status(500).json({ error: "Could not register client" });
   }
 });
-
-
 
 router.post("/logout", async (req, res) => {
   try {
@@ -254,7 +288,8 @@ router.post("/check-client", async (req, res) => {
         serialId: updatedSerial.id,
         device:updatedSerial.device,
         platform:updatedSerial.platform,
-        exp: updatedSerial.exp // Assuming `exp` is a field in your serial model
+        exp: updatedSerial.exp, // Assuming `exp` is a field in your serial model
+        registeredAt: updatedSerial.registeredAt // Assuming `registeredAt` is a field in your serial model
       });
     } else {
       // Serial does not have an associated client

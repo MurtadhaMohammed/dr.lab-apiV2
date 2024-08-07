@@ -130,6 +130,22 @@ router.post("/register", async (req, res) => {
   const { phone, labName, name, email, address, device } = req.body;
 
   try {
+    
+    const existingClient = await prisma.client.findFirst({
+      where: { phone },
+    });
+    
+    const deviceId = await prisma.client.findFirst({
+      where: { device },
+    });
+    
+    if (existingClient) {
+      return res.status(400).json({ message: "Client already exists" });
+    }
+    
+    if (deviceId) {
+      return res.status(400).json({ message: "Device already exists" });
+    }
     const newSerial = await generateUniqueSerial();
 
     const createtrial = await prisma.serial.create({
@@ -138,22 +154,6 @@ router.post("/register", async (req, res) => {
         exp: 7,
       },
     });
-
-    const existingClient = await prisma.client.findFirst({
-      where: { phone },
-    });
-
-    const deviceId = await prisma.serial.findFirst({
-      where: { device },
-    });
-
-    if (existingClient) {
-      return res.status(400).json({ message: "Client already exists" });
-    }
-
-    if (deviceId) {
-      return res.status(400).json({ message: "Device already exists" });
-    }
 
     const updatedSerial = await prisma.serial.update({
       where: { id: createtrial.id },
@@ -169,6 +169,7 @@ router.post("/register", async (req, res) => {
         phone,
         email,
         address,
+        device,
         type: "trial", // Set the client type to 'trial'
         serials: {
           connect: { id: createtrial.id },

@@ -22,6 +22,7 @@ model Client {
   phone     String     @unique
   email     String?
   address   String?
+  device    String?    @unique
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
   type      ClientType @default(trial)
@@ -35,7 +36,7 @@ model Serial {
   exp          Int
   active       Boolean   @default(true)
   platform     String?
-  device       String?
+  device       String?   @unique
   startAt      DateTime?
   registeredAt DateTime?
   price        Float     @default(0)

@@ -111,7 +111,7 @@ router.put("/update-client", async (req, res) => {
 });
 
 const generateUniqueSerial = async () => {
-  
+
   let serial = Math.floor(10000000 + Math.random() * 90000000).toString();
   let existingSerial;
 
@@ -150,7 +150,7 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Client already exists" });
     }
 
-    if (deviceId) {
+    if (deviceId) { 
       return res.status(400).json({ message: "Device already exists" });
     }
 

@@ -6,7 +6,9 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 router.post("/create-invoice", async (req, res) => {
-  const { phone, serial, price } = req.body;
+  const { serial, price } = req.body;
+  const { name, labName, phone, email, address, type } = req.body;
+
 
   try {
     // Find the serial using the serial number
@@ -18,37 +20,31 @@ router.post("/create-invoice", async (req, res) => {
       return res.status(404).json({ message: "Serial not found" });
     }
 
-    // Find the client using the phone number
-    const client = await prisma.client.findUnique({
-      where: { phone },
+    const newClient = await prisma.client.create({
+      data: {
+        name,
+        labName,
+        phone,
+        email,
+        address,
+        type: "paid",
+      },
     });
-
-    if (!client) {
-      return res.status(404).json({ message: "Client not found" });
-    }
 
     // Connect the serial to the client
     await prisma.serial.update({
       where: { id: foundSerial.id },
-      data: { clientId: client.id },
+      data: { clientId: newClient.id },
     });
 
     // Create the invoice and connect it to the client and serial
     const newInvoice = await prisma.invoice.create({
       data: {
         price,
-        clientId: client.id, // Use the found client's ID
+        clientId: newClient.id, // Use the found client's ID
         serialId: foundSerial.id, // Use the found serial's ID
       },
     });
-
-    // Update the client type to 'paid' if not already 'paid'
-    if (client.type === "trial") {
-      await prisma.client.update({
-        where: { phone },
-        data: { type: "paid" },
-      });
-    }
 
     res.json(newInvoice);
   } catch (error) {

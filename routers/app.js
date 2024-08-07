@@ -161,7 +161,6 @@ router.post("/register", async (req, res) => {
         phone,
         email,
         address,
-        device,
         type: 'trial', // Set the client type to 'trial'
         serial: {
           connect: { id: createtrial.id },

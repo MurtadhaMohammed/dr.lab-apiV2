@@ -272,7 +272,6 @@ router.post("/check-client", async (req, res) => {
     if (!existingSerial || !existingSerial.active) {
       return res.status(400).json({ message: "Invalid or inactive serial" });
     }
-    const currentTime = dayjs().toISOString();
     // Check if the serial has an associated client
     const client = existingSerial.client;
 
@@ -285,6 +284,12 @@ router.post("/check-client", async (req, res) => {
           platform,
           startAt: dayjs().toISOString(),
           registeredAt: dayjs().toISOString(),
+        },
+      });
+      await prisma.client.update({
+        where: { id: client.id },
+        data: {
+          device,
         },
       });
 

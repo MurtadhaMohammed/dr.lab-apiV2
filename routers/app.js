@@ -159,6 +159,8 @@ router.post("/register", async (req, res) => {
       where: { id: createtrial.id },
       data: {
         device,
+        startAt: dayjs().toISOString(),
+        registeredAt: dayjs().toISOString(),
       },
     });
 

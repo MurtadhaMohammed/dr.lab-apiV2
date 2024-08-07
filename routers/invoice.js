@@ -17,7 +17,8 @@ router.post("/create-invoice", async (req, res) => {
     });
 
     const usedSerial = await prisma.serial.findFirst({
-      where: { clientId: foundSerial.clientId },
+      //if serial id is not null
+      where: { serial, clientId: { not: null } },
     });
     if (usedSerial) {
       return res.status(400).json({ message: "Serial already in use" });

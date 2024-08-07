@@ -142,7 +142,7 @@ router.post("/register", async (req, res) => {
       where: { phone },
     });
 
-    const deviceId = await prisma.client.findFirst({
+    const deviceId = await prisma.serial.findFirst({
       where: { device },
     });
 

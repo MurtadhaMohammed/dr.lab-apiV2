@@ -65,7 +65,7 @@ router.get("/serial-has-client/:serialId", async (req, res) => {
 
 router.put("/update-client", async (req, res) => {
   try {
-    const { device, labName, name, phone, email, address } = req.body;
+    const { device, labName, name, phone, email, address, startAt, registeredAt } = req.body;
 
     // Find the serial by the device ID
     const serial = await prisma.serial.findFirst({
@@ -90,6 +90,17 @@ router.put("/update-client", async (req, res) => {
       }
     }
 
+    // Use dayjs to get the current time if startAt and registeredAt are not provided
+    const currentTime = dayjs().toISOString();
+
+    const updateSerialDate = await prisma.serial.update({
+      where: { id: serial.id },
+      data: {
+        startAt: startAt || currentTime,
+        registeredAt: registeredAt || currentTime,
+      },
+    });
+
     // Update the client details
     const updatedClient = await prisma.client.update({
       where: { id: existingClient.id },
@@ -102,12 +113,14 @@ router.put("/update-client", async (req, res) => {
       },
     });
 
-    res.json(updatedClient);
+    res.json({ updatedClient, updateSerialDate });
   } catch (error) {
     console.error("Error updating client:", error);
     res.status(500).json({ error: "Could not update client" });
   }
 });
+
+module.exports = router;
 
 const generateUniqueSerial = async () => {
   let serial = Math.floor(10000000 + Math.random() * 90000000).toString();

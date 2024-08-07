@@ -8,7 +8,6 @@ const prisma = new PrismaClient();
 
 // 1 - Endpoint to create a serial
 
-
 // 2 - Endpoint to register device by checking if serial is valid
 router.post("/register-device", async (req, res) => {
   try {
@@ -111,7 +110,6 @@ router.put("/update-client", async (req, res) => {
 });
 
 const generateUniqueSerial = async () => {
-
   let serial = Math.floor(10000000 + Math.random() * 90000000).toString();
   let existingSerial;
 
@@ -127,14 +125,14 @@ const generateUniqueSerial = async () => {
 
 router.post("/register", async (req, res) => {
   const { phone, labName, name, email, address, device } = req.body;
-  
+
   try {
     const newSerial = await generateUniqueSerial();
 
     const createtrial = await prisma.serial.create({
       data: {
         serial: newSerial,
-        exp: 7
+        exp: 7,
       },
     });
 
@@ -150,9 +148,16 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Client already exists" });
     }
 
-    if (deviceId) { 
+    if (deviceId) {
       return res.status(400).json({ message: "Device already exists" });
     }
+
+    const updatedSerial = await prisma.serial.update({
+      where: { id: createtrial.id },
+      data: {
+        device,
+      },
+    });
 
     const newClient = await prisma.client.create({
       data: {
@@ -161,14 +166,14 @@ router.post("/register", async (req, res) => {
         phone,
         email,
         address,
-        type: 'trial', // Set the client type to 'trial'
-        serial: {
+        type: "trial", // Set the client type to 'trial'
+        serials: {
           connect: { id: createtrial.id },
         },
       },
     });
 
-    res.json(newClient);
+    res.status(200).json({client: newClient, serial: updatedSerial });
   } catch (error) {
     console.error("Error registering client:", error);
     res.status(500).json({ error: "Could not register client" });
@@ -178,7 +183,7 @@ router.post("/register", async (req, res) => {
 router.post("/logout", async (req, res) => {
   try {
     const { serial } = req.body;
-    
+
     // Find the serial by the serial number
     const existingSerial = await prisma.serial.findFirst({
       where: { serial },
@@ -200,9 +205,6 @@ router.post("/logout", async (req, res) => {
     res.status(500).json({ error: "Could not remove device from serial" });
   }
 });
-
-
-
 
 // Endpoint to check if a serial is expired
 router.post("/check-serial-expiration", async (req, res) => {
@@ -281,25 +283,27 @@ router.post("/check-client", async (req, res) => {
       });
 
       // Return the client data, updated serial, and serial details
-      return res.json({ 
-        success: true, 
-        client, 
+      return res.json({
+        success: true,
+        client,
         serialId: updatedSerial.id,
-        device:updatedSerial.device,
-        platform:updatedSerial.platform,
+        device: updatedSerial.device,
+        platform: updatedSerial.platform,
         exp: updatedSerial.exp, // Assuming `exp` is a field in your serial model
-        registeredAt: updatedSerial.registeredAt // Assuming `registeredAt` is a field in your serial model
+        registeredAt: updatedSerial.registeredAt, // Assuming `registeredAt` is a field in your serial model
       });
     } else {
       // Serial does not have an associated client
-      return res.status(404).json({ success: false, message: "Client not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Client not found" });
     }
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: "An error occurred while checking the client" });
+    res
+      .status(500)
+      .json({ error: "An error occurred while checking the client" });
   }
 });
-
-
 
 module.exports = router;

@@ -179,7 +179,7 @@ router.post("/register", async (req, res) => {
       },
     });
 
-    res.status(200).json({client: newClient, serial: updatedSerial });
+    res.status(200).json({success: true, client: newClient, serial: updatedSerial});
   } catch (error) {
     console.error("Error registering client:", error);
     res.status(500).json({ error: "Could not register client" });

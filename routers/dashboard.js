@@ -1,6 +1,7 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const adminAuth = require("../middleware/adminAuth");
+const dayjs = require("dayjs");
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -122,6 +123,62 @@ router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
     res.status(500).json({ error: "Could not add feature to serial" });
   }
 });
+//endpoint to reset to today serial startAt date
+
+//activate client by changing client from trial to paid and adding serial to trial client
+router.put("/activate-client/:id", async (req, res) => {
+  try {
+    const { serial } = req.body; // Expecting the actual serial string in the request body
+    const { id } = req.params;
+
+    // Find the client by ID
+    const client = await prisma.client.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    // Find the serial by its actual serial number
+    const newSerial = await prisma.serial.findFirst({
+      where: { serial },
+    });
+
+    if (!newSerial) {
+      return res.status(404).json({ error: "Serial not found" });
+    }
+
+    // Update the client to type 'paid' and connect the new serial
+    const updatedClient = await prisma.client.update({
+      where: { id: parseInt(id) },
+      data: {
+        type: "paid",
+        serials: {
+          connect: { id: newSerial.id },
+        },
+      },
+    });
+
+    // Create an invoice for the client
+    const createInvoice = await prisma.invoice.create({
+      data: {
+        clientId: parseInt(id),
+        serialId: newSerial.id,
+        type: "CREATE",
+        price: newSerial.price,
+      },
+    });
+
+    res.json({ updatedClient, createInvoice });
+  } catch (error) {
+    console.error("Error activating client:", error);
+    res.status(500).json({ error: "Could not activate client" });
+  }
+});
+
+module.exports = router;
+
 
 // 5 - Endpoint to read all clients
 router.get("/clients", async (req, res) => {

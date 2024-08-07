@@ -38,6 +38,17 @@ router.patch("/client/:id/activate", async (req, res) => {
   }
 });
 
+router.get("/unused-serials", async (req, res) => {
+  try {
+    const serials = await prisma.serial.findMany({
+      where: { clientId: null },
+    });
+    res.json(serials);
+  } catch (error) {
+    console.error("Error fetching unused serials:", error);
+    res.status(500).json({ error: "Could not fetch unused serials" });
+  }
+});
 // 4 - Endpoint to read all serials
 router.get("/serials", async (req, res) => {
   try {

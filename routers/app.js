@@ -90,16 +90,6 @@ router.put("/update-client", async (req, res) => {
       }
     }
 
-    // Use dayjs to get the current time if startAt and registeredAt are not provided
-    const currentTime = dayjs().toISOString();
-
-    const updateSerialDate = await prisma.serial.update({
-      where: { id: serial.id },
-      data: {
-        startAt: startAt || currentTime,
-        registeredAt: registeredAt || currentTime,
-      },
-    });
 
     // Update the client details
     const updatedClient = await prisma.client.update({
@@ -281,17 +271,19 @@ router.post("/check-client", async (req, res) => {
     if (!existingSerial || !existingSerial.active) {
       return res.status(400).json({ message: "Invalid or inactive serial" });
     }
-
+    const currentTime = dayjs().toISOString();
     // Check if the serial has an associated client
     const client = existingSerial.client;
 
     if (client) {
-      // Update the serial with device and platform information
+      // Update the serial with device, platform, startAt and registeredAt information
       const updatedSerial = await prisma.serial.update({
         where: { id: existingSerial.id },
         data: {
           device,
           platform,
+          startAt: dayjs().toISOString(),
+          registeredAt: dayjs().toISOString(),
         },
       });
 

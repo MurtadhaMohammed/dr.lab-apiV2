@@ -65,10 +65,10 @@ router.get("/serial-has-client/:serialId", async (req, res) => {
 
 router.put("/update-client", async (req, res) => {
   try {
-    const { device, labName, name, phone, email, address, startAt, registeredAt } = req.body;
+    const { device, labName, name, phone, email, address } = req.body;
 
     // Find the serial by the device ID
-    const serial = await prisma.serial.findFirst({
+    const client = await prisma.client.findFirst({
       where: { device },
       include: {
         client: true, // Include the client directly
@@ -77,8 +77,8 @@ router.put("/update-client", async (req, res) => {
 
     let existingClient;
 
-    if (serial) {
-      existingClient = serial.client;
+    if (client) {
+      existingClient = client;
     } else {
       // If no serial is found, find the client directly by the phone number
       existingClient = await prisma.client.findFirst({

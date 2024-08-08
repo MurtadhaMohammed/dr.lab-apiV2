@@ -299,11 +299,7 @@ router.post("/check-client", async (req, res) => {
       return res.json({
         success: true,
         client,
-        serialId: updatedSerial.id,
-        device: updatedSerial.device,
-        platform: updatedSerial.platform,
-        exp: updatedSerial.exp, // Assuming `exp` is a field in your serial model
-        registeredAt: updatedSerial.registeredAt, // Assuming `registeredAt` is a field in your serial model
+        updatedSerial,
       });
     } else {
       // Serial does not have an associated client

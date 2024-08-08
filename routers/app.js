@@ -103,7 +103,7 @@ router.put("/update-client", async (req, res) => {
       },
     });
 
-    res.json({ updatedClient, updateSerialDate });
+    res.json({ updatedClient });
   } catch (error) {
     console.error("Error updating client:", error);
     res.status(500).json({ error: "Could not update client" });

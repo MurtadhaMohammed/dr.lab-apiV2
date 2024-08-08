@@ -148,6 +148,12 @@ router.put("/activate-client/:id", async (req, res) => {
     if (!newSerial) {
       return res.status(404).json({ error: "Serial not found" });
     }
+     const updateSerial = await prisma.serial.update({
+      where: { id: newSerial.id },
+      data: {
+        startAt: dayjs().toISOString(),
+      },
+    });
 
     // Update the client to type 'paid' and connect the new serial
     const updatedClient = await prisma.client.update({

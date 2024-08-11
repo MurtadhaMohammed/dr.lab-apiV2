@@ -74,6 +74,14 @@ model Feature {
   createdAt DateTime @default(now())
 }
 
+model Whatsapp {
+  id               Int      @id @default(autoincrement())
+  phone            String   @unique
+  name             String?
+  numberOfMessages Int
+  createdAt        DateTime @default(now())
+}
+
 enum InvoiceType {
   CREATE
   UPDATE

@@ -128,7 +128,7 @@ router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
 //activate client by changing client from trial to paid and adding serial to trial client
 router.put("/activate-client/:id", async (req, res) => {
   try {
-    const { serial, note } = req.body; // Expecting the actual serial string in the request body
+    const { serial } = req.body; // Expecting the actual serial string in the request body
     const { id } = req.params;
 
     // Find the client by ID

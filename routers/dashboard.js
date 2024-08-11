@@ -128,7 +128,7 @@ router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
 //activate client by changing client from trial to paid and adding serial to trial client
 router.put("/activate-client/:id", async (req, res) => {
   try {
-    const { serial,note } = req.body; // Expecting the actual serial string in the request body
+    const { serial, note } = req.body; // Expecting the actual serial string in the request body
     const { id } = req.params;
 
     // Find the client by ID
@@ -148,7 +148,12 @@ router.put("/activate-client/:id", async (req, res) => {
     if (!newSerial) {
       return res.status(404).json({ error: "Serial not found" });
     }
-     await prisma.serial.update({
+
+    // Determine the invoice type based on the current client type
+    const invoiceType = client.type === "trial" ? "CREATE" : "UPDATE";
+
+    // Update the serial start date
+    await prisma.serial.update({
       where: { id: newSerial.id },
       data: {
         startAt: dayjs().toISOString(),
@@ -171,8 +176,7 @@ router.put("/activate-client/:id", async (req, res) => {
       data: {
         clientId: parseInt(id),
         serialId: newSerial.id,
-        note,
-        type: type.updatedClient === "trial" ? "CREATE" : "UPDATE",
+        type: invoiceType,
         price: newSerial.price,
       },
     });
@@ -185,6 +189,7 @@ router.put("/activate-client/:id", async (req, res) => {
 });
 
 module.exports = router;
+
 
 
 // 5 - Endpoint to read all clients

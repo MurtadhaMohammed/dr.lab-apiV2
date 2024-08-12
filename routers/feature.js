@@ -55,10 +55,9 @@ router.get("/features", async (req, res) => {
 });
 
 
-
 // Endpoint to active feature
 router.put("/active-feature", async (req, res) => {
-  const { subscriptionId, featureId, price, startDate, endDate } = req.body;
+  const { invoiceId, featureId, price } = req.body;
 
   try {
     // Retrieve the feature by its ID
@@ -75,7 +74,7 @@ router.put("/active-feature", async (req, res) => {
     // Retrieve the subscription by its ID
     const subscription = await prisma.subscription.findUnique({
       where: {
-        id: parseInt(subscriptionId),
+        id: parseInt(invoiceId),
       },
     });
 
@@ -84,7 +83,7 @@ router.put("/active-feature", async (req, res) => {
     }
 
     // Add the feature ID to the subscription's features array
-    feature = { ...feature, startDate, endDate, price };
+    feature = { ...feature, price };
     const updatedFeatures = subscription.features
       ? [...subscription.features, feature]
       : [feature];
@@ -92,7 +91,7 @@ router.put("/active-feature", async (req, res) => {
     // Update the subscription with the new features array
     const updatedSubscription = await prisma.subscription.update({
       where: {
-        id: parseInt(subscriptionId),
+        id: parseInt(invoiceId),
       },
       data: {
         features: updatedFeatures,

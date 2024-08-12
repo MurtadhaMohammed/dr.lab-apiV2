@@ -59,6 +59,48 @@ const uploadToLinode = async (files) => {
   }
 };
 
+
+router.post("/meesage-counter", async (req, res) => {
+  const { phone,name,numberOfMessages  } = req.body;
+  try {
+    const response = await fetch(
+      "https://graph.facebook.com/v20.0/142971062224854/messages",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: `964${phone}`,
+          type: "text",
+          text: `Hello ${name}, you have sent ${numberOfMessages} messages today`,
+        }),
+      }
+    );
+
+    const updateWhatsapp = await prisma.whatsapp.post({
+      where: {phone},
+      data: {
+        phone,
+        numberOfMessages
+      }
+    });
+
+    const data = await response.json();
+    res.status(200).json({data, updateWhatsapp}); // Respond with the data received from the API
+  } catch (error) {
+    console.error("Error:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while sending the message" });
+  }
+});
+    
+
+    
+
 router.post("/whatsapp-message", async (req, res) => {
   const { phone, name, lab } = req.body; // Extract 'to' and 'link' from the request body
 

@@ -192,9 +192,23 @@ router.post("/logout", async (req, res) => {
       where: { serial },
     });
 
+    const existingClient = await prisma.client.findFirst({
+      where: { id: existingSerial.clientId },
+    });
+
     if (!existingSerial) {
       return res.status(404).json({ error: "Serial not found" });
     }
+    if (!existingClient) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    const updatedClient = await prisma.client.update({
+      where: { id: existingClient.id },
+      data: {
+        device: null,
+      },
+    });
 
     // Update the serial to remove the device
     const updatedSerial = await prisma.serial.update({
@@ -202,7 +216,7 @@ router.post("/logout", async (req, res) => {
       data: { device: null },
     });
 
-    res.json(updatedSerial);
+    res.json({updatedSerial, updatedClient});
   } catch (error) {
     console.error("Error removing device from serial:", error);
     res.status(500).json({ error: "Could not remove device from serial" });

@@ -37,15 +37,15 @@ const uploadToLinode = async (files) => {
 
 
 
-  // if (!files || Object.keys(files).length === 0) {
-  //   return res.status(400).send("No files were uploaded.");
-  // }
+  if (!files || Object.keys(files).length === 0) {
+    return res.status(400).send("No files were uploaded.");
+  }
 
 
 
 
 
-  
+
   const file = files.file;
   const bucketName = "files"; // Replace with your bucket name
   const objectName = file.name;
@@ -118,61 +118,63 @@ router.post("/whatsapp-message", async (req, res) => {
   if (!url) res.status(500).json({ massege: "Uploading Error!" });
 
   try {
-    const response = await fetch(
-      "https://graph.facebook.com/v20.0/142971062224854/messages",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: `964${phone}`,
-          type: "template",
-          template: {
-            name: "lab",
-            language: {
-              code: "ar",
-            },
-            components: [
-              {
-                type: "header", // This is the body component of the template
-                parameters: [
-                  {
-                    type: "text",
-                    text: name, // Replace with your variable
-                  },
-                ],
-              },
-              {
-                type: "body", // This is the body component of the template
-                parameters: [
-                  {
-                    type: "text",
-                    text: lab, // Replace with your variable
-                  },
-                ],
-              },
-              {
-                type: "button",
-                sub_type: "url", // Specifies that this is a URL button
-                index: "0", // Index of the button (starts from 0)
-                parameters: [
-                  {
-                    type: "text",
-                    text: url, // Replace with the actual URL for the button
-                  },
-                ],
-              },
-            ],
-          },
-        }),
-      }
-    );
+    //return a ok if file recevede
+    res.status(200).json({ url });
+    // const response = await fetch(
+    //   "https://graph.facebook.com/v20.0/142971062224854/messages",
+    //   {
+    //     method: "POST",
+    //     headers: {
+    //       Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify({
+    //       messaging_product: "whatsapp",
+    //       to: `964${phone}`,
+    //       type: "template",
+    //       template: {
+    //         name: "lab",
+    //         language: {
+    //           code: "ar",
+    //         },
+    //         components: [
+    //           {
+    //             type: "header", // This is the body component of the template
+    //             parameters: [
+    //               {
+    //                 type: "text",
+    //                 text: name, // Replace with your variable
+    //               },
+    //             ],
+    //           },
+    //           {
+    //             type: "body", // This is the body component of the template
+    //             parameters: [
+    //               {
+    //                 type: "text",
+    //                 text: lab, // Replace with your variable
+    //               },
+    //             ],
+    //           },
+    //           {
+    //             type: "button",
+    //             sub_type: "url", // Specifies that this is a URL button
+    //             index: "0", // Index of the button (starts from 0)
+    //             parameters: [
+    //               {
+    //                 type: "text",
+    //                 text: url, // Replace with the actual URL for the button
+    //               },
+    //             ],
+    //           },
+    //         ],
+    //       },
+    //     }),
+    //   }
+    // );
 
-    const data = await response.json();
-    res.status(200).json(data); // Respond with the data received from the API
+    // const data = await response.json();
+    // res.status(200).json(data); // Respond with the data received from the API
   } catch (error) {
     console.error("Error:", error);
     res

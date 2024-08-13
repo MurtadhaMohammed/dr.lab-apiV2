@@ -33,10 +33,19 @@ const s3Client = new S3Client({
 });
 
 const uploadToLinode = async (files) => {
-  if (!files || Object.keys(files).length === 0) {
-    return res.status(400).send("No files were uploaded.");
-  }
 
+
+
+
+  // if (!files || Object.keys(files).length === 0) {
+  //   return res.status(400).send("No files were uploaded.");
+  // }
+
+
+
+
+
+  
   const file = files.file;
   const bucketName = "files"; // Replace with your bucket name
   const objectName = file.name;

@@ -285,33 +285,43 @@ router.post("/check-client", async (req, res) => {
     if (!existingSerial || !existingSerial.active) {
       return res.status(400).json({ message: "Invalid or inactive serial" });
     }
+
     // Check if the serial has an associated client
     const client = existingSerial.client;
 
     if (client) {
-      // Update the serial with device, platform, startAt and registeredAt information
-      const updatedSerial = await prisma.serial.update({
-        where: { id: existingSerial.id },
-        data: {
-          device,
-          platform,
-          startAt: dayjs().toISOString(),
-          registeredAt: dayjs().toISOString(),
-        },
-      });
-      await prisma.client.update({
-        where: { id: client.id },
-        data: {
-          device,
-        },
-      });
+      // Check if the device field is null in both the serial and client tables
+      if (!existingSerial.device && !client.device) {
+        // Both device fields are null, proceed with the update
+        const updatedSerial = await prisma.serial.update({
+          where: { id: existingSerial.id },
+          data: {
+            device,
+            platform,
+            startAt: dayjs().toISOString(),
+            registeredAt: dayjs().toISOString(),
+          },
+        });
 
-      // Return the client data, updated serial, and serial details
-      return res.json({
-        success: true,
-        client,
-        updatedSerial,
-      });
+        await prisma.client.update({
+          where: { id: client.id },
+          data: {
+            device,
+          },
+        });
+
+        // Return the client data, updated serial, and serial details
+        return res.json({
+          success: true,
+          client,
+          updatedSerial,
+        });
+      } else {
+        // Either the serial or the client device is not null
+        return res
+          .status(400)
+          .json({ success: false, message: "Device information already exists" });
+      }
     } else {
       // Serial does not have an associated client
       return res
@@ -325,5 +335,6 @@ router.post("/check-client", async (req, res) => {
       .json({ error: "An error occurred while checking the client" });
   }
 });
+
 
 module.exports = router;

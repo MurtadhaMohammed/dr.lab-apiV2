@@ -50,6 +50,22 @@ router.get("/unused-serials", async (req, res) => {
     res.status(500).json({ error: "Could not fetch unused serials" });
   }
 });
+
+router.put("/edit-serial/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { serial, exp } = req.body;
+    const updatedSerial = await prisma.serial.update({
+      where: { id: parseInt(id) },
+      data: { serial, exp },
+    });
+    res.json(updatedSerial);
+  } catch (error) {
+    console.error("Error updating serial:", error);
+    res.status(500).json({ error: "Could not update serial" });
+  }
+}
+);
 // 4 - Endpoint to read all serials
 router.get("/serials", async (req, res) => {
   try {

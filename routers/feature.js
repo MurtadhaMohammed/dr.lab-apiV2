@@ -135,8 +135,8 @@ router.put("/add-feature-to-serial", async (req, res) => {
     }
 
     // Add the feature ID to the serial's features array
-    const updatedFeatures = serial.features
-      ? [...serial.features, feature]
+    const updatedFeatures = serial.feature
+      ? [...serial.feature, feature]
       : [feature];
 
     // Update the serial with the new features array
@@ -145,7 +145,7 @@ router.put("/add-feature-to-serial", async (req, res) => {
         id: parseInt(serialId),
       },
       data: {
-        features: updatedFeatures,
+        feature: updatedFeatures,
       },
     });
 

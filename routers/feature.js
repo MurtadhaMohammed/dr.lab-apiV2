@@ -98,10 +98,61 @@ router.put("/active-feature", async (req, res) => {
       },
     });
 
+
     res.json(updatedSubscription);
   } catch (error) {
     console.error("Error updating subscription:", error);
     res.status(500).json({ message: "Error updating subscription" });
+  }
+});
+
+
+// add feature to serial
+router.put("/add-feature-to-serial", async (req, res) => {
+  const { serialId, featureId } = req.body;
+
+  try {
+    // Retrieve the feature by its ID
+    const feature = await prisma.feature.findUnique({
+      where: {
+        id: parseInt(featureId),
+      },
+    });
+
+    if (!feature) {
+      return res.status(404).json({ message: "Feature not found" });
+    }
+
+    // Retrieve the serial by its ID
+    let serial = await prisma.serial.findUnique({
+      where: {
+        id: parseInt(serialId),
+      },
+    });
+
+    if (!serial) {
+      return res.status(404).json({ message: "Serial not found" });
+    }
+
+    // Add the feature ID to the serial's features array
+    const updatedFeatures = serial.features
+      ? [...serial.features, feature]
+      : [feature];
+
+    // Update the serial with the new features array
+    serial = await prisma.serial.update({
+      where: {
+        id: parseInt(serialId),
+      },
+      data: {
+        features: updatedFeatures,
+      },
+    });
+
+    res.json(serial);
+  } catch (error) {
+    console.error("Error updating serial:", error);
+    res.status(500).json({ message: "Error updating serial" });
   }
 });
 

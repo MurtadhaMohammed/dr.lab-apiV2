@@ -115,66 +115,67 @@ router.post("/whatsapp-message", async (req, res) => {
 
   let url = await uploadToLinode(req.files);
 
+  console.log(phone, name, lab, url);
   if (!url) res.status(500).json({ massege: "Uploading Error!" });
 
   try {
     //return a ok if file recevede
     res.status(200).json({ url });
-    // const response = await fetch(
-    //   "https://graph.facebook.com/v20.0/142971062224854/messages",
-    //   {
-    //     method: "POST",
-    //     headers: {
-    //       Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify({
-    //       messaging_product: "whatsapp",
-    //       to: `964${phone}`,
-    //       type: "template",
-    //       template: {
-    //         name: "lab",
-    //         language: {
-    //           code: "ar",
-    //         },
-    //         components: [
-    //           {
-    //             type: "header", // This is the body component of the template
-    //             parameters: [
-    //               {
-    //                 type: "text",
-    //                 text: name, // Replace with your variable
-    //               },
-    //             ],
-    //           },
-    //           {
-    //             type: "body", // This is the body component of the template
-    //             parameters: [
-    //               {
-    //                 type: "text",
-    //                 text: lab, // Replace with your variable
-    //               },
-    //             ],
-    //           },
-    //           {
-    //             type: "button",
-    //             sub_type: "url", // Specifies that this is a URL button
-    //             index: "0", // Index of the button (starts from 0)
-    //             parameters: [
-    //               {
-    //                 type: "text",
-    //                 text: url, // Replace with the actual URL for the button
-    //               },
-    //             ],
-    //           },
-    //         ],
-    //       },
-    //     }),
-    //   }
-    // );
+    const response = await fetch(
+      "https://graph.facebook.com/v20.0/142971062224854/messages",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: `964${phone}`,
+          type: "template",
+          template: {
+            name: "lab",
+            language: {
+              code: "ar",
+            },
+            components: [
+              {
+                type: "header", // This is the body component of the template
+                parameters: [
+                  {
+                    type: "text",
+                    text: name, // Replace with your variable
+                  },
+                ],
+              },
+              {
+                type: "body", // This is the body component of the template
+                parameters: [
+                  {
+                    type: "text",
+                    text: lab, // Replace with your variable
+                  },
+                ],
+              },
+              {
+                type: "button",
+                sub_type: "url", // Specifies that this is a URL button
+                index: "0", // Index of the button (starts from 0)
+                parameters: [
+                  {
+                    type: "text",
+                    text: url, // Replace with the actual URL for the button
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      }
+    );
 
-    // const data = await response.json();
-    // res.status(200).json(data); // Respond with the data received from the API
+    const data = await response.json();
+    res.status(200).json(data); // Respond with the data received from the API
   } catch (error) {
     console.error("Error:", error);
     res

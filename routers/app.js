@@ -69,7 +69,7 @@ router.put("/update-client", async (req, res) => {
 
     // Find the serial by the device ID
     const client = await prisma.client.findFirst({
-      where: { device },
+      where: { device }
     });
 
     let existingClient;
@@ -86,6 +86,7 @@ router.put("/update-client", async (req, res) => {
         return res.status(404).json({ error: "Client not found" });
       }
     }
+
 
     // Update the client details
     const updatedClient = await prisma.client.update({
@@ -126,18 +127,19 @@ router.post("/register", async (req, res) => {
   const { phone, labName, name, email, address, device } = req.body;
 
   try {
+    
     const existingClient = await prisma.client.findFirst({
       where: { phone },
     });
-
+    
     const deviceId = await prisma.client.findFirst({
       where: { device },
     });
-
+    
     if (existingClient) {
       return res.status(400).json({ message: "Client already exists" });
     }
-
+    
     if (deviceId) {
       return res.status(400).json({ message: "Device already exists" });
     }
@@ -174,9 +176,7 @@ router.post("/register", async (req, res) => {
       },
     });
 
-    res
-      .status(200)
-      .json({ success: true, client: newClient, serial: updatedSerial });
+    res.status(200).json({success: true, client: newClient, serial: updatedSerial});
   } catch (error) {
     console.error("Error registering client:", error);
     res.status(500).json({ error: "Could not register client" });
@@ -206,26 +206,23 @@ router.post("/logout", async (req, res) => {
     const updatedClient = await prisma.client.update({
       where: { id: existingClient.id },
       data: {
-        device: null
+        device: null,
       },
     });
 
     // Update the serial to remove the device
     const updatedSerial = await prisma.serial.update({
       where: { id: existingSerial.id },
-      data: { 
-        device: null
-       },
+      data: { device: null },
     });
 
-    res.json({ updatedSerial, updatedClient });
+    res.json({updatedSerial, updatedClient});
   } catch (error) {
     console.error("Error removing device from serial:", error);
     res.status(500).json({ error: "Could not remove device from serial" });
   }
 });
 
-module.exports = router;
 // Endpoint to check if a serial is expired
 router.post("/check-serial-expiration", async (req, res) => {
   const { serialId } = req.body;
@@ -323,10 +320,7 @@ router.post("/check-client", async (req, res) => {
         // Either the serial or the client device is not null
         return res
           .status(400)
-          .json({
-            success: false,
-            message: "Device information already exists",
-          });
+          .json({ success: false, message: "Device information already exists" });
       }
     } else {
       // Serial does not have an associated client
@@ -341,5 +335,6 @@ router.post("/check-client", async (req, res) => {
       .json({ error: "An error occurred while checking the client" });
   }
 });
+
 
 module.exports = router;

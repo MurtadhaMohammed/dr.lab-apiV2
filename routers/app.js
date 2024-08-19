@@ -233,8 +233,15 @@ router.post("/check-serial-expiration", async (req, res) => {
     if (!serial) {
       return res.status(404).json({ message: "Serial not found" });
     }
+    const active = await prisma.client.findFirst({
+      where: { id: serial.clientId, active: true },
+    });
+    if (!active) {
+      return res.status(400).json({ message: "Client is inactive" });
+    }
+
     const expired = isSerialExpired(serial);
-    res.json({ expired, serial });
+    res.json({ expired, serial ,active });
   } catch (error) {
     console.error("Error checking serial expiration:", error);
     res.status(500).json({

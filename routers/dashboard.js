@@ -211,29 +211,36 @@ module.exports = router;
 // 5 - Endpoint to read all clients
 router.get("/clients", async (req, res) => {
   try {
-    const { name, phone } = req.query;
+    const { name } = req.query;
 
+    // Fetch clients with their associated serials and invoices
     const clients = await prisma.client.findMany({
       where: {
         name: { contains: name, mode: "insensitive" },
       },
       include: {
         serials: true,
-        invoices: true,
+        invoices: {
+          include: {
+            serial: true, // Include the full serial object in the invoice
+          },
+        },
       },
     });
 
+    // Map clients to include full serial details from their invoices
     const clientsWithSerials = clients.map((client) => ({
       ...client,
-      serials: client.invoices.map((invoice) => invoice.serialId),
+      serials: client.invoices.map((invoice) => invoice.serial), // Full serial object
     }));
 
-    res.json(clientsWithSerials);
+    res.json({ clients: clientsWithSerials });
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({ error: "Could not fetch clients" });
   }
 });
+
 
 // 7 - Endpoint to add a new client
 router.post("/add-client", async (req, res) => {

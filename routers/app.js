@@ -305,10 +305,11 @@ router.post("/check-client", async (req, res) => {
           data: {
             device,
             platform,
-            startAt: dayjs().toISOString(),
-            registeredAt: dayjs().toISOString(),
+            startAt: existingSerial.startAt || dayjs().toISOString(), // Update only if startAt is null or undefined
+            registeredAt: existingSerial.registeredAt || dayjs().toISOString(), // Update only if registeredAt is null or undefined
           },
         });
+        
 
         await prisma.client.update({
           where: { id: client.id },

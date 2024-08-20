@@ -75,11 +75,14 @@ model Feature {
 }
 
 model Whatsapp {
-  id               Int      @id @default(autoincrement())
-  phone            String   @unique
-  name             String?
-  numberOfMessages Int
-  createdAt        DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  senderPhone   String   
+  name          String?
+  labName       String?
+  messageId     Int?
+  receiverPhone String
+  fileName      String?
+  createdAt     DateTime @default(now())
 }
 
 enum InvoiceType {

@@ -1,7 +1,8 @@
 const express = require("express");
-// const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("@prisma/client");
 // const adminAuth = require("../middleware/adminAuth");
-// const dayjs = require("dayjs");
+const dayjs = require("dayjs");
+const shortid = require('shortid');
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 // const AWS = require("aws-sdk");
@@ -12,7 +13,7 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 //4VprTapVdABKFsPf8re8dUEdRiA0jyKGrEERE6JT
 
 const router = express.Router();
-// const prisma = new PrismaClient();
+const prisma = new PrismaClient();
 
 // const s3 = new AWS.S3({
 //   accessKeyId: "YIV0FZNI8VLMWPVYF4A4", // Replace with your Access Key
@@ -32,23 +33,15 @@ const s3Client = new S3Client({
   forcePathStyle: true, // Required for S3-compatible storage
 });
 
-const uploadToLinode = async (files) => {
-
-
-
+const uploadToLinode = async (files, phone) => {
 
   if (!files || Object.keys(files).length === 0) {
     return res.status(400).send("No files were uploaded.");
   }
 
-
-
-
-
-
   const file = files.file;
   const bucketName = "files"; // Replace with your bucket name
-  const objectName = file.name;
+  const objectName = `${phone}-${shortid.generate().slice(0, 6)}`; // Generate the file name
 
   try {
     const command = new PutObjectCommand({
@@ -68,56 +61,29 @@ const uploadToLinode = async (files) => {
   }
 };
 
-
-router.post("/meesage-counter", async (req, res) => {
-  const { phone,name,numberOfMessages  } = req.body;
-  try {
-    const response = await fetch(
-      "https://graph.facebook.com/v20.0/142971062224854/messages",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: `964${phone}`,
-          type: "text",
-          text: `Hello ${name}, you have sent ${numberOfMessages} messages today`,
-        }),
-      }
-    );
-
-    const updateWhatsapp = await prisma.whatsapp.post({
-      where: {phone},
-      data: {
-        phone,
-        numberOfMessages
-      }
-    });
-
-    const data = await response.json();
-    res.status(200).json({data, updateWhatsapp}); // Respond with the data received from the API
-  } catch (error) {
-    console.error("Error:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while sending the message" });
-  }
-});
-    
-
     
 router.post("/whatsapp-message", async (req, res) => {
-  const { phone, name, lab } = req.body;
-console.log(phone, name, lab, req.files);
+  const { phone, name, lab , senderPhone } = req.body;
+console.log(phone, name, lab, req.files,senderPhone);
   try {
-    let url = await uploadToLinode(req.files);
+    const url = await uploadToLinode(req.files, phone);
 
+    const whatsapp = await prisma.whatsapp.create({
+      data: {
+        name,
+        labName: lab,
+        receiverPhone: phone,
+        senderPhone,
+        fileName:url,
+        createdAt: dayjs().toISOString(),
+      },
+    });
+    
+    
     if (!url) {
       return res.status(500).json({ message: "Uploading Error!" });
     }
+
 
     const response = await fetch(
       "https://graph.facebook.com/v20.0/142971062224854/messages",
@@ -172,8 +138,10 @@ console.log(phone, name, lab, req.files);
       }
     );
 
-    const data = await response.json();
-    res.status(200).json({ message: "Message sent successfully", data });
+
+
+    const resp = await response.json({whatsapp});
+    res.status(200).json({ message: "Message sent successfully", resp });
   } catch (error) {
     console.error("Error:", error);
     res

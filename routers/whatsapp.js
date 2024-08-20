@@ -224,4 +224,17 @@ console.log(phone, name, lab, req.files,senderPhone);
 //   }
 // });
 
+
+
+
+router.get("/whatsapp-messages", async (req, res) => {
+  try {
+    const messages = await prisma.whatsapp.findMany();
+    res.json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Could not fetch messages" });
+  }
+});
+
 module.exports = router;

@@ -146,7 +146,7 @@ router.post("/register", async (req, res) => {
     const createtrial = await prisma.serial.create({
       data: {
         serial: newSerial,
-        exp: 7,
+        exp: 30,
       },
     });
 

@@ -133,7 +133,7 @@ router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
       },
     });
 
-    res.json(updatedSerial);
+    res.status(200).json(updatedSerial);
   } catch (error) {
     console.error("Error adding feature to serial:", error);
     res.status(500).json({ error: "Could not add feature to serial" });
@@ -229,16 +229,14 @@ router.get("/clients", async (req, res) => {
     });
 
     // Map clients to include full serial details from their invoices
-    const clientsWithSerials1 = clients.map((client) => ({
-      ...client,
-      serials: client.invoices.map((invoice) => invoice.serial), // Full serial object
-    }));
+
 
     //map client with serials without invoice
     const clientsWithSerials = clients.map((client) => ({
       ...client,
       serials: client.serials.map((serial) => ({
         ...serial,
+        
       })),
     }));
 

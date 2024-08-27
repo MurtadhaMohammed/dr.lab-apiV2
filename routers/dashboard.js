@@ -240,7 +240,7 @@ router.get("/clients", async (req, res) => {
       })),
     }));
 
-    res.json({ clients: clientsWithSerials, clientsWithSerials1 });
+    res.json({ clients: clientsWithSerials });
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({ error: "Could not fetch clients" });

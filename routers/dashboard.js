@@ -220,7 +220,6 @@ router.get("/clients", async (req, res) => {
       },
       include: {
         serials: true,
-        serial: true,
         invoices: {
           include: {
             serial: true, // Include the full serial object in the invoice
@@ -230,12 +229,20 @@ router.get("/clients", async (req, res) => {
     });
 
     // Map clients to include full serial details from their invoices
-    const clientsWithSerials = clients.map((client) => ({
+    const clientsWithSerials1 = clients.map((client) => ({
       ...client,
       serials: client.invoices.map((invoice) => invoice.serial), // Full serial object
     }));
 
-    res.json({ clients: clientsWithSerials });
+    //map client with serials without invoice
+    const clientsWithSerials = clients.map((client) => ({
+      ...client,
+      serials: client.serials.map((serial) => ({
+        ...serial,
+      })),
+    }));
+
+    res.json({ clients: clientsWithSerials, clientsWithSerials1 });
   } catch (error) {
     console.error("Error fetching clients:", error);
     res.status(500).json({ error: "Could not fetch clients" });

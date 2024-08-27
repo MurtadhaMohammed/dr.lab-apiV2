@@ -220,6 +220,7 @@ router.get("/clients", async (req, res) => {
       },
       include: {
         serials: true,
+        serial: true,
         invoices: {
           include: {
             serial: true, // Include the full serial object in the invoice

@@ -64,7 +64,6 @@ const uploadToLinode = async (files, phone) => {
     
 router.post("/whatsapp-message", async (req, res) => {
   const { phone, name, lab , senderPhone } = req.body;
-console.log(phone, name, lab, req.files,senderPhone);
   try {
     const url = await uploadToLinode(req.files, phone);
 

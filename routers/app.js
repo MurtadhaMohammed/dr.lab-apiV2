@@ -67,44 +67,56 @@ router.put("/update-client", async (req, res) => {
   try {
     const { device, labName, name, phone, email, address } = req.body;
 
-    // Find the serial by the device ID
-    const client = await prisma.client.findFirst({
+    // Ensure at least one identifier is provided
+    if (!device && !phone) {
+      return res.status(400).json({ error: "Device ID or phone number is required to update a client" });
+    }
+
+    // Find the client by device ID
+    let client = await prisma.client.findFirst({
       where: { device },
     });
 
-    let existingClient;
-
-    if (client) {
-      existingClient = client;
-    } else {
-      // If no serial is found, find the client directly by the phone number
-      existingClient = await prisma.client.findFirst({
+    // If client not found by device, find by phone number
+    if (!client && phone) {
+      client = await prisma.client.findFirst({
         where: { phone },
       });
 
-      if (!existingClient) {
+      if (!client) {
         return res.status(404).json({ error: "Client not found" });
       }
     }
 
-    // Update the client details
+    // If updating the phone number, check for duplicates
+    if (phone && phone !== client.phone) {
+      const existingPhoneClient = await prisma.client.findFirst({
+        where: { phone },
+      });
+      if (existingPhoneClient) {
+        return res.status(400).json({ error: "Phone number already in use by another client" });
+      }
+    }
+
+    // Update client details
     const updatedClient = await prisma.client.update({
-      where: { id: existingClient.id },
+      where: { id: client.id },
       data: {
-        name: name || existingClient.name,
-        labName: labName || existingClient.labName,
-        phone: phone || existingClient.phone,
-        email: email || existingClient.email,
-        address: address || existingClient.address,
+        name: name || client.name,
+        labName: labName || client.labName,
+        phone: phone || client.phone,
+        email: email || client.email,
+        address: address || client.address,
       },
     });
 
-    res.json({ updatedClient });
+    res.status(200).json({ updatedClient });
   } catch (error) {
     console.error("Error updating client:", error);
     res.status(500).json({ error: "Could not update client" });
   }
 });
+
 
 module.exports = router;
 

@@ -126,8 +126,6 @@ router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
           id: featureData.id,
           name: featureData.name,
           note: featureData.note,
-          startDate,
-          endDate,
           price: featureData.price,
         },
       },
@@ -227,9 +225,6 @@ router.get("/clients", async (req, res) => {
         },
       },
     });
-
-    // Map clients to include full serial details from their invoices
-
 
     //map client with serials without invoice
     const clientsWithSerials = clients.map((client) => ({

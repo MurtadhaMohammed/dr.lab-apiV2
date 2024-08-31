@@ -24,25 +24,28 @@ model Client {
   address   String?
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
-  type      ClientType @default(trail)
-  serials   Serial[]
+  type      ClientType @default(trial)
+  device    String?    @unique
   invoices  Invoice[]
+  serials   Serial[]
 }
 
 model Serial {
-  id           Int       @id @default(autoincrement())
-  serial       String    @unique
+  id           Int        @id @default(autoincrement())
+  serial       String     @unique
   exp          Int
-  active       Boolean   @default(true)
-  device       String?
+  active       Boolean    @default(true)
+  device       String?    @unique
   startAt      DateTime?
   registeredAt DateTime?
-  price        Float     @default(0)
-  createdAt    DateTime  @default(now())
-  client       Client?   @relation(fields: [clientId], references: [id])
+  price        Float      @default(0)
+  createdAt    DateTime   @default(now())
   clientId     Int?
+  features     Feature[]
+  platform     String?
   invoices     Invoice[]
-  feature      Json? //{id, ... , startDate, endDate, price}
+  client       Client?    @relation(fields: [clientId], references: [id])
+  whatsapp     Whatsapp[]
 }
 
 model Invoice {
@@ -50,26 +53,33 @@ model Invoice {
   serialId  Int
   type      InvoiceType @default(CREATE)
   price     Float
-  client    Client?     @relation(fields: [clientId], references: [id])
   clientId  Int?
   createdAt DateTime    @default(now())
+  client    Client?     @relation(fields: [clientId], references: [id])
   serial    Serial      @relation(fields: [serialId], references: [id])
-}
-
-model FeaturInvoice {
-  id                 Int      @id @default(autoincrement())
-  registeredFeatures Json?
-  totalPrice         Float
-  endPrice           Float
-  createdAt          DateTime @default(now())
 }
 
 model Feature {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   note      String?
-  price     Float
   createdAt DateTime @default(now())
+  serial    Serial?  @relation(fields: [serialId], references: [id])
+  serialId  Int?
+  active    Boolean  @default(true)
+}
+
+model Whatsapp {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  name          String?
+  fileName      String?
+  labName       String?
+  messageId     Int?
+  receiverPhone String
+  senderPhone   String
+  serial        Serial?  @relation(fields: [serialId], references: [id])
+  serialId      Int?
 }
 
 enum InvoiceType {
@@ -79,6 +89,8 @@ enum InvoiceType {
 }
 
 enum ClientType {
-  trail
-  paid
+  trial
+  basic
+  premium
+  enterprise
 }

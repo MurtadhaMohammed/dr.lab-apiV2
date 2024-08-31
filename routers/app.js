@@ -138,7 +138,7 @@ const generateUniqueSerial = async () => {
 };
 
 router.post("/register", async (req, res) => {
-  const { phone, labName, name, email, address, device } = req.body;
+  const { phone, labName, name, email, address, device, platform } = req.body;
 
   try {
     const existingClient = await prisma.client.findFirst({
@@ -161,6 +161,7 @@ router.post("/register", async (req, res) => {
     const createtrial = await prisma.serial.create({
       data: {
         serial: newSerial,
+        platform,
         exp: 30,
       },
     });
@@ -169,6 +170,7 @@ router.post("/register", async (req, res) => {
       where: { id: createtrial.id },
       data: {
         device,
+        platform,
         startAt: dayjs().toISOString(),
         registeredAt: dayjs().toISOString(),
       },
@@ -185,7 +187,7 @@ router.post("/register", async (req, res) => {
         serials: {
           connect: { id: createtrial.id },
         },
-      }
+      },
     });
 
     res

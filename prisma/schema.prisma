@@ -22,30 +22,27 @@ model Client {
   phone     String     @unique
   email     String?
   address   String?
-  device    String?    @unique
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
   type      ClientType @default(trial)
   invoices  Invoice[]
   serials   Serial[]
+  whatsapp  Whatsapp[]
 }
 
 model Serial {
-  id           Int        @id @default(autoincrement())
-  serial       String     @unique
+  id           Int       @id @default(autoincrement())
+  serial       String    @unique
   exp          Int
-  active       Boolean    @default(true)
-  device       String?    @unique
+  active       Boolean   @default(true)
+  device       String?   @unique
   startAt      DateTime?
   registeredAt DateTime?
-  price        Float      @default(0)
-  createdAt    DateTime   @default(now())
+  price        Float     @default(0)
+  createdAt    DateTime  @default(now())
   clientId     Int?
-  features     Feature[]
   platform     String?
-  invoices     Invoice[]
-  client       Client?    @relation(fields: [clientId], references: [id])
-  whatsapp     Whatsapp[]
+  client       Client?   @relation(fields: [clientId], references: [id])
 }
 
 model Invoice {
@@ -56,17 +53,6 @@ model Invoice {
   clientId  Int?
   createdAt DateTime    @default(now())
   client    Client?     @relation(fields: [clientId], references: [id])
-  serial    Serial      @relation(fields: [serialId], references: [id])
-}
-
-model Feature {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  note      String?
-  createdAt DateTime @default(now())
-  serial    Serial?  @relation(fields: [serialId], references: [id])
-  serialId  Int?
-  active    Boolean  @default(true)
 }
 
 model Whatsapp {
@@ -78,10 +64,9 @@ model Whatsapp {
   messageId     Int?
   receiverPhone String
   senderPhone   String
-  serial        Serial?  @relation(fields: [serialId], references: [id])
-  serialId      Int?
+  Client        Client?  @relation(fields: [clientId], references: [id])
+  clientId      Int?
 }
-
 
 enum InvoiceType {
   CREATE

@@ -69,7 +69,9 @@ router.put("/update-client", async (req, res) => {
 
     // Ensure at least one identifier is provided
     if (!device && !phone) {
-      return res.status(400).json({ error: "Device ID or phone number is required to update a client" });
+      return res.status(400).json({
+        error: "Device ID or phone number is required to update a client",
+      });
     }
 
     // Find the client by device ID
@@ -94,7 +96,9 @@ router.put("/update-client", async (req, res) => {
         where: { phone },
       });
       if (existingPhoneClient) {
-        return res.status(400).json({ error: "Phone number already in use by another client" });
+        return res
+          .status(400)
+          .json({ error: "Phone number already in use by another client" });
       }
     }
 
@@ -116,7 +120,6 @@ router.put("/update-client", async (req, res) => {
     res.status(500).json({ error: "Could not update client" });
   }
 });
-
 
 module.exports = router;
 
@@ -142,7 +145,7 @@ router.post("/register", async (req, res) => {
       where: { phone },
     });
 
-    const deviceId = await prisma.client.findFirst({
+    const deviceId = await prisma.serial.findFirst({
       where: { device },
     });
 
@@ -178,12 +181,11 @@ router.post("/register", async (req, res) => {
         phone,
         email,
         address,
-        device,
         type: "trial", // Set the client type to 'trial'
         serials: {
           connect: { id: createtrial.id },
         },
-      },
+      }
     });
 
     res
@@ -221,14 +223,7 @@ router.post("/logout", async (req, res) => {
       data: { device: null },
     });
 
-    const updatedClient = await prisma.client.update({
-      where: { id: existingClient.id },
-      data: {
-        device: null,
-      },
-    });
-
-    res.json({ updatedSerial, updatedClient });
+    res.json({ updatedSerial });
   } catch (error) {
     console.error("Error removing device from serial:", error);
     res.status(500).json({ error: "Could not remove device from serial" });
@@ -253,7 +248,7 @@ router.post("/check-serial-expiration", async (req, res) => {
     }
 
     const expired = isSerialExpired(serial);
-    res.json({ expired, serial ,active });
+    res.json({ expired, serial, active });
   } catch (error) {
     console.error("Error checking serial expiration:", error);
     res.status(500).json({
@@ -295,7 +290,6 @@ router.post("/check-client", async (req, res) => {
     const existingSerial = await prisma.serial.findFirst({
       where: { serial },
       include: {
-        invoices: true,
         client: true, // Include the client data directly
       },
     });
@@ -309,8 +303,7 @@ router.post("/check-client", async (req, res) => {
     const client = existingSerial.client;
 
     if (client) {
-      // Check if the device field is null in both the serial and client tables
-      if (!existingSerial.device && !client.device) {
+      if (!existingSerial.device) {
         // Both device fields are null, proceed with the update
         const updatedSerial = await prisma.serial.update({
           where: { id: existingSerial.id },
@@ -321,29 +314,23 @@ router.post("/check-client", async (req, res) => {
             registeredAt: existingSerial.registeredAt || dayjs().toISOString(), // Update only if registeredAt is null or undefined
           },
         });
-        
 
-        await prisma.client.update({
-          where: { id: client.id },
-          data: {
-            device,
-          },
+        const clientInfo = await prisma.client.findUnique({
+          where: { id: parseInt(client.id) },
         });
 
         // Return the client data, updated serial, and serial details
         return res.json({
           success: true,
-          client,
+          client: clientInfo,
           updatedSerial,
         });
       } else {
         // Either the serial or the client device is not null
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Device information already exists",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Device information already exists",
+        });
       }
     } else {
       // Serial does not have an associated client

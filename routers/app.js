@@ -75,20 +75,26 @@ router.put("/update-client", async (req, res) => {
     }
 
     // Find the client by device ID
-    let client = await prisma.client.findFirst({
+    let serial = await prisma.serial.findFirst({
       where: { device },
+      include: {
+        client: true,
+      },
     });
 
-    // If client not found by device, find by phone number
-    if (!client && phone) {
-      client = await prisma.client.findFirst({
-        where: { phone },
-      });
+    // Find the client by device ID
+    let client = serial?.client;
 
-      if (!client) {
-        return res.status(404).json({ error: "Client not found" });
-      }
-    }
+    // If client not found by device, find by phone number
+    // if (!client && phone) {
+    //   client = await prisma.client.findFirst({
+    //     where: { phone },
+    //   });
+
+    //   if (!client) {
+    //     return res.status(404).json({ error: "Client not found" });
+    //   }
+    // }
 
     // If updating the phone number, check for duplicates
     if (phone && phone !== client.phone) {

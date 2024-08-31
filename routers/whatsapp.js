@@ -2,7 +2,7 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 // const adminAuth = require("../middleware/adminAuth");
 const dayjs = require("dayjs");
-const shortid = require('shortid');
+const shortid = require("shortid");
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 // const AWS = require("aws-sdk");
@@ -34,7 +34,6 @@ const s3Client = new S3Client({
 });
 
 const uploadToLinode = async (files, phone) => {
-
   if (!files || Object.keys(files).length === 0) {
     return res.status(400).send("No files were uploaded.");
   }
@@ -61,9 +60,8 @@ const uploadToLinode = async (files, phone) => {
   }
 };
 
-    
 router.post("/whatsapp-message", async (req, res) => {
-  const { phone, name, lab , senderPhone } = req.body;
+  const { clientId, phone, name, lab, senderPhone } = req.body;
   try {
     const url = await uploadToLinode(req.files, phone);
 
@@ -73,16 +71,15 @@ router.post("/whatsapp-message", async (req, res) => {
         labName: lab,
         receiverPhone: phone,
         senderPhone,
-        fileName:url,
+        clientId: parseInt(clientId),
+        fileName: url,
         createdAt: dayjs().toISOString(),
       },
     });
-    
-    
+
     if (!url) {
       return res.status(500).json({ message: "Uploading Error!" });
     }
-
 
     const response = await fetch(
       "https://graph.facebook.com/v20.0/142971062224854/messages",
@@ -137,9 +134,7 @@ router.post("/whatsapp-message", async (req, res) => {
       }
     );
 
-
-
-    const resp = await response.json({whatsapp});
+    const resp = await response.json({ whatsapp });
     res.status(200).json({ message: "Message sent successfully", resp });
   } catch (error) {
     console.error("Error:", error);
@@ -222,9 +217,6 @@ router.post("/whatsapp-message", async (req, res) => {
 //       .json({ error: "An error occurred while sending the message" });
 //   }
 // });
-
-
-
 
 router.get("/whatsapp-messages", async (req, res) => {
   try {

@@ -22,10 +22,10 @@ model Client {
   phone     String     @unique
   email     String?
   address   String?
+  device    String?    @unique
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
   type      ClientType @default(trial)
-  device    String?    @unique
   invoices  Invoice[]
   serials   Serial[]
 }
@@ -81,6 +81,7 @@ model Whatsapp {
   serial        Serial?  @relation(fields: [serialId], references: [id])
   serialId      Int?
 }
+
 
 enum InvoiceType {
   CREATE

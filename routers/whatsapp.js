@@ -1,7 +1,8 @@
 const express = require("express");
-// const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("@prisma/client");
 // const adminAuth = require("../middleware/adminAuth");
-// const dayjs = require("dayjs");
+const dayjs = require("dayjs");
+const shortid = require('shortid');
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 // const AWS = require("aws-sdk");
@@ -12,7 +13,7 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 //4VprTapVdABKFsPf8re8dUEdRiA0jyKGrEERE6JT
 
 const router = express.Router();
-// const prisma = new PrismaClient();
+const prisma = new PrismaClient();
 
 // const s3 = new AWS.S3({
 //   accessKeyId: "YIV0FZNI8VLMWPVYF4A4", // Replace with your Access Key
@@ -32,14 +33,15 @@ const s3Client = new S3Client({
   forcePathStyle: true, // Required for S3-compatible storage
 });
 
-const uploadToLinode = async (files) => {
+const uploadToLinode = async (files, phone) => {
+
   if (!files || Object.keys(files).length === 0) {
     return res.status(400).send("No files were uploaded.");
   }
 
   const file = files.file;
   const bucketName = "files"; // Replace with your bucket name
-  const objectName = file.name;
+  const objectName = `${phone}-${shortid.generate().slice(0, 6)}`; // Generate the file name
 
   try {
     const command = new PutObjectCommand({
@@ -59,14 +61,29 @@ const uploadToLinode = async (files) => {
   }
 };
 
+    
 router.post("/whatsapp-message", async (req, res) => {
-  const { phone, name, lab } = req.body; // Extract 'to' and 'link' from the request body
-
-  let url = await uploadToLinode(req.files);
-
-  if (!url) res.status(500).json({ massege: "Uploading Error!" });
-
+  const { phone, name, lab , senderPhone } = req.body;
   try {
+    const url = await uploadToLinode(req.files, phone);
+
+    const whatsapp = await prisma.whatsapp.create({
+      data: {
+        name,
+        labName: lab,
+        receiverPhone: phone,
+        senderPhone,
+        fileName:url,
+        createdAt: dayjs().toISOString(),
+      },
+    });
+    
+    
+    if (!url) {
+      return res.status(500).json({ message: "Uploading Error!" });
+    }
+
+
     const response = await fetch(
       "https://graph.facebook.com/v20.0/142971062224854/messages",
       {
@@ -86,31 +103,31 @@ router.post("/whatsapp-message", async (req, res) => {
             },
             components: [
               {
-                type: "header", // This is the body component of the template
+                type: "header",
                 parameters: [
                   {
                     type: "text",
-                    text: name, // Replace with your variable
+                    text: name,
                   },
                 ],
               },
               {
-                type: "body", // This is the body component of the template
+                type: "body",
                 parameters: [
                   {
                     type: "text",
-                    text: lab, // Replace with your variable
+                    text: lab,
                   },
                 ],
               },
               {
                 type: "button",
-                sub_type: "url", // Specifies that this is a URL button
-                index: "0", // Index of the button (starts from 0)
+                sub_type: "url",
+                index: "0",
                 parameters: [
                   {
                     type: "text",
-                    text: url, // Replace with the actual URL for the button
+                    text: url,
                   },
                 ],
               },
@@ -120,13 +137,102 @@ router.post("/whatsapp-message", async (req, res) => {
       }
     );
 
-    const data = await response.json();
-    res.status(200).json(data); // Respond with the data received from the API
+
+
+    const resp = await response.json({whatsapp});
+    res.status(200).json({ message: "Message sent successfully", resp });
   } catch (error) {
     console.error("Error:", error);
     res
       .status(500)
       .json({ error: "An error occurred while sending the message" });
+  }
+});
+
+// router.post("/whatsapp-message", async (req, res) => {
+//   const { phone, name, lab } = req.body; // Extract 'to' and 'link' from the request body
+
+//   let url = await uploadToLinode(req.files);
+
+//   console.log(phone, name, lab, url);
+//   if (!url) res.status(500).json({ massege: "Uploading Error!" });
+
+//   try {
+//     //return a ok if file recevede
+//     res.status(200).json({ url });
+//     const response = await fetch(
+//       "https://graph.facebook.com/v20.0/142971062224854/messages",
+//       {
+//         method: "POST",
+//         headers: {
+//           Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify({
+//           messaging_product: "whatsapp",
+//           to: `964${phone}`,
+//           type: "template",
+//           template: {
+//             name: "lab",
+//             language: {
+//               code: "ar",
+//             },
+//             components: [
+//               {
+//                 type: "header", // This is the body component of the template
+//                 parameters: [
+//                   {
+//                     type: "text",
+//                     text: name, // Replace with your variable
+//                   },
+//                 ],
+//               },
+//               {
+//                 type: "body", // This is the body component of the template
+//                 parameters: [
+//                   {
+//                     type: "text",
+//                     text: lab, // Replace with your variable
+//                   },
+//                 ],
+//               },
+//               {
+//                 type: "button",
+//                 sub_type: "url", // Specifies that this is a URL button
+//                 index: "0", // Index of the button (starts from 0)
+//                 parameters: [
+//                   {
+//                     type: "text",
+//                     text: url, // Replace with the actual URL for the button
+//                   },
+//                 ],
+//               },
+//             ],
+//           },
+//         }),
+//       }
+//     );
+
+//     const data = await response.json();
+//     res.status(200).json(data); // Respond with the data received from the API
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res
+//       .status(500)
+//       .json({ error: "An error occurred while sending the message" });
+//   }
+// });
+
+
+
+
+router.get("/whatsapp-messages", async (req, res) => {
+  try {
+    const messages = await prisma.whatsapp.findMany();
+    res.json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Could not fetch messages" });
   }
 });
 

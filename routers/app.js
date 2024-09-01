@@ -301,7 +301,7 @@ router.post("/check-client", async (req, res) => {
         client: true, // Include the client data directly
       },
     });
-
+ 
     // Check if the serial is valid and active
     if (!existingSerial || !existingSerial.active) {
       return res.status(400).json({ message: "Invalid or inactive serial" });

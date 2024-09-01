@@ -98,59 +98,70 @@ router.get("/serials", async (req, res) => {
 
 //endpoint to reset to today serial startAt date
 
-//activate client by changing client from trial to paid and adding serial to trial client
 router.put("/activate-client/:id", async (req, res) => {
   try {
-    const { serial } = req.body; // Expecting the actual serial string in the request body
+    const { serial } = req.body; 
     const { id } = req.params;
 
-    // Find the client by ID
     const client = await prisma.client.findUnique({
       where: { id: parseInt(id) },
+      include: {
+        serials: true,
+      },
     });
 
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    // Find the serial by its actual serial number
-    const newSerial = await prisma.serial.findFirst({
-      where: { serial },
-    });
+    if (client.serials && client.serials.length > 0) {
+      await prisma.serial.updateMany({
+        where: { id: { in: client.serials.map((s) => s.id) } },
+        data: {
+          startAt: dayjs().toISOString(),
+        },
+      });
+    } else {
+      const newSerial = await prisma.serial.findFirst({
+        where: { serial },
+      });
 
-    if (!newSerial) {
-      return res.status(404).json({ error: "Serial not found" });
+      if (!newSerial) {
+        return res.status(404).json({ error: "Serial not found" });
+      }
+
+      await prisma.serial.update({
+        where: { id: newSerial.id },
+        data: {
+          startAt: dayjs().toISOString(),
+        },
+      });
+
+      await prisma.client.update({
+        where: { id: parseInt(id) },
+        data: {
+          serials: {
+            connect: { id: newSerial.id },
+          },
+        },
+      });
     }
-
-    // Determine the invoice type based on the current client type
     const invoiceType = client.type === "trial" ? "CREATE" : "UPDATE";
 
-    // Update the serial start date
-    await prisma.serial.update({
-      where: { id: newSerial.id },
-      data: {
-        startAt: dayjs().toISOString(),
-      },
-    });
-
-    // Update the client to type 'paid' and connect the new serial
     const updatedClient = await prisma.client.update({
       where: { id: parseInt(id) },
       data: {
         type: "basic",
-        serials: {
-          connect: { id: newSerial.id },
-        },
       },
     });
 
-    // Create an invoice for the client
+
     const createInvoice = await prisma.invoice.create({
       data: {
         clientId: parseInt(id),
-        serialId: newSerial.id,
+        serialId: client.serials.length > 0 ? client.serials[0].id : newSerial.id,
         type: invoiceType,
-        price: newSerial.price,
+        price: client.serials.length > 0 ? client.serials[0].price : newSerial.price,
       },
     });
 
@@ -161,7 +172,7 @@ router.put("/activate-client/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+
 
 
 

@@ -80,7 +80,6 @@ router.get("/serials", async (req, res) => {
       },
       include: {
         client: true,
-        invoices: true,
       },
     });
 
@@ -96,47 +95,7 @@ router.get("/serials", async (req, res) => {
   }
 });
 
-router.put("/add-feature-to-serial", adminAuth, async (req, res) => {
-  try {
-    const { serialId, featureId } = req.body;
 
-    // Fetch the serial
-    const serial = await prisma.serial.findUnique({
-      where: { id: serialId },
-    });
-
-    if (!serial) {
-      return res.status(404).json({ error: "Serial not found" });
-    }
-
-    // Fetch the feature data from another table
-    const featureData = await prisma.feature.findUnique({
-      where: { id: featureId },
-    });
-
-    if (!featureData) {
-      return res.status(404).json({ error: "Feature not found" });
-    }
-
-    // Update the serial with the new feature
-    const updatedSerial = await prisma.serial.update({
-      where: { id: serialId },
-      data: {
-        feature: {
-          id: featureData.id,
-          name: featureData.name,
-          note: featureData.note,
-          price: featureData.price,
-        },
-      },
-    });
-
-    res.status(200).json(updatedSerial);
-  } catch (error) {
-    console.error("Error adding feature to serial:", error);
-    res.status(500).json({ error: "Could not add feature to serial" });
-  }
-});
 //endpoint to reset to today serial startAt date
 
 //activate client by changing client from trial to paid and adding serial to trial client
@@ -178,7 +137,7 @@ router.put("/activate-client/:id", async (req, res) => {
     const updatedClient = await prisma.client.update({
       where: { id: parseInt(id) },
       data: {
-        type: "paid",
+        type: "basic",
         serials: {
           connect: { id: newSerial.id },
         },
@@ -218,11 +177,7 @@ router.get("/clients", async (req, res) => {
       },
       include: {
         serials: true,
-        invoices: {
-          include: {
-            serial: true, // Include the full serial object in the invoice
-          },
-        },
+        
       },
     });
 

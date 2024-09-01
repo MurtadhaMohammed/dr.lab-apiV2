@@ -64,8 +64,8 @@ model Whatsapp {
   messageId     Int?
   receiverPhone String
   senderPhone   String
-  Client        Client?  @relation(fields: [clientId], references: [id])
   clientId      Int?
+  Client        Client?  @relation(fields: [clientId], references: [id])
 }
 
 enum InvoiceType {

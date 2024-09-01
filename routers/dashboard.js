@@ -273,7 +273,7 @@ router.put("/update-client/:id", async (req, res) => {
       data: {
         name,
         labName,
-        type: type === "trial" ? "trial" : "paid",
+        type,
         active,
         phone,
         email,

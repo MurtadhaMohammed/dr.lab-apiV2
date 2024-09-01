@@ -152,7 +152,6 @@ router.get("/invoices", async (req, res) => {
       },
       include: {
         client: true,
-        serial: true,
       },
     });
 

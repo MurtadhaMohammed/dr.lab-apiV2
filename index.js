@@ -5,7 +5,7 @@ const port = 3000;
 const adminRouter = require("./routers/admin");
 const appRouter = require("./routers/app");
 const whatsappRouter = require("./routers/whatsapp");
-const featureRouter = require("./routers/feature");
+// const featureRouter = require("./routers/feature");
 const dashboardRouter = require("./routers/dashboard");
 const invoiceRouter = require("./routers/invoice");
 const fileUpload = require("express-fileupload");
@@ -29,7 +29,7 @@ app.get("/", (req, res) => {
 app.use("/api/admin", adminRouter);
 app.use("/api/app", appRouter);
 app.use("/api/send", whatsappRouter);
-app.use("/api/feature", featureRouter);
+// app.use("/api/feature", featureRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/invoice", invoiceRouter);
 

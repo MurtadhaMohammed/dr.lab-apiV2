@@ -203,7 +203,7 @@ router.post("/add-client", async (req, res) => {
   try {
     const { name, labName, phone, email, address, device, type } = req.body;
 
-    const validTypes = ["trial", "paid"];
+    const validTypes = ["trial", "basic","premium","enterprise"];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ error: "Invalid client type" });
     }
@@ -217,7 +217,7 @@ router.post("/add-client", async (req, res) => {
         email,
         address,
         device,
-        type: type === "trial" ? "trial" : "paid",
+        type
       },
     });
 

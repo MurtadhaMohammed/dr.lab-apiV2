@@ -28,6 +28,9 @@ router.post("/create-invoice", async (req, res) => {
       return res.status(404).json({ message: "Serial not found" });
     }
 
+
+
+
     const newClient = await prisma.client.create({
       data: {
         name,
@@ -35,7 +38,7 @@ router.post("/create-invoice", async (req, res) => {
         phone,
         email,
         address,
-        type: "paid",
+        type
       },
     });
 

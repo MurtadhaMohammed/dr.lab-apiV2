@@ -72,8 +72,12 @@ router.get("/whatsapp", async (req, res) => {
 
 router.post("/whatsapp-message", async (req, res) => {
   const { clientId, phone, name, lab, senderPhone } = req.body;
+  
   try {
     const url = await uploadToLinode(req.files, phone);
+    if (!url) {
+      return res.status(500).json({ message: "Uploading Error!" });
+    }
 
     const whatsapp = await prisma.whatsapp.create({
       data: {
@@ -86,10 +90,6 @@ router.post("/whatsapp-message", async (req, res) => {
         createdAt: dayjs().toISOString(),
       },
     });
-
-    if (!url) {
-      return res.status(500).json({ message: "Uploading Error!" });
-    }
 
     const response = await fetch(
       "https://graph.facebook.com/v20.0/142971062224854/messages",
@@ -148,9 +148,57 @@ router.post("/whatsapp-message", async (req, res) => {
     res.status(200).json({ message: "Message sent successfully", resp });
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while sending the message" });
+    res.status(500).json({ error: "An error occurred while sending the message" });
+  }
+});
+
+router.get("/whatsapp-count/:clientId", async (req, res) => {
+  const clientId = parseInt(req.params.clientId);
+
+  if (isNaN(clientId)) {
+    return res.status(400).json({ error: "Invalid client ID" });
+  }
+
+  try {
+    const firstSerial = await prisma.serial.findFirst({
+      where: { clientId: clientId },
+      orderBy: { startAt: 'asc' },
+    });
+
+    if (!firstSerial) {
+      return res.status(404).json({ error: "No serial found for the client" });
+    }
+
+    let count = 0; 
+
+      const start = dayjs(firstSerial.startAt).startOf('month');
+      const end = start.endOf('month');
+
+      count = await prisma.whatsapp.count({
+        where: {
+          clientId: clientId,
+          createdAt: {
+            gte: start.toDate(),
+            lt: end.toDate(),
+          },
+        },
+      });
+    
+
+    res.json({ clientId, count });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "An error occurred while counting messages" });
+  }
+});
+
+router.get("/whatsapp-messages", async (req, res) => {
+  try {
+    const messages = await prisma.whatsapp.findMany();
+    res.json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Could not fetch messages" });
   }
 });
 
@@ -227,15 +275,5 @@ router.post("/whatsapp-message", async (req, res) => {
 //       .json({ error: "An error occurred while sending the message" });
 //   }
 // });
-
-router.get("/whatsapp-messages", async (req, res) => {
-  try {
-    const messages = await prisma.whatsapp.findMany();
-    res.json(messages);
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    res.status(500).json({ error: "Could not fetch messages" });
-  }
-});
 
 module.exports = router;

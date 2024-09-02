@@ -96,20 +96,7 @@ router.get("/serials", async (req, res) => {
 });
 
 
-router.put("/add-whatsapp-to-client/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { whatsapp } = req.body;
-    const updatedClient = await prisma.client.update({
-      where: { id: parseInt(id) },
-      data: { whatsapp },
-    });
-    res.status(200).json(updatedClient);
-  } catch (error) {
-    console.error("Error updating client whatsapp:", error);
-    res.status(500).json({ error: "Could not update client whatsapp" });
-  }
-});
+
 
 //endpoint to reset to today serial startAt date
 

@@ -100,13 +100,14 @@ router.get("/serials", async (req, res) => {
 
 router.put("/activate-client/:id", async (req, res) => {
   try {
-    const { serial } = req.body; 
+    const { serial } = req.body; // Expecting the actual serial string in the request body (optional)
     const { id } = req.params;
 
+    // Find the client by ID
     const client = await prisma.client.findUnique({
       where: { id: parseInt(id) },
       include: {
-        serials: true,
+        serials: true, // Include connected serials
       },
     });
 
@@ -114,14 +115,8 @@ router.put("/activate-client/:id", async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    if (client.serials && client.serials.length > 0) {
-      await prisma.serial.updateMany({
-        where: { id: { in: client.serials.map((s) => s.id) } },
-        data: {
-          startAt: dayjs().toISOString(),
-        },
-      });
-    } else {
+    if (serial) {
+      // If a serial is provided, find the serial by its actual serial number
       const newSerial = await prisma.serial.findFirst({
         where: { serial },
       });
@@ -130,6 +125,7 @@ router.put("/activate-client/:id", async (req, res) => {
         return res.status(404).json({ error: "Serial not found" });
       }
 
+      // Update the start date of the new serial
       await prisma.serial.update({
         where: { id: newSerial.id },
         data: {
@@ -137,6 +133,7 @@ router.put("/activate-client/:id", async (req, res) => {
         },
       });
 
+      // Connect the new serial to the client
       await prisma.client.update({
         where: { id: parseInt(id) },
         data: {
@@ -145,27 +142,41 @@ router.put("/activate-client/:id", async (req, res) => {
           },
         },
       });
+
+      // Create an invoice for the client
+      const invoiceType = client.type === "trial" ? "CREATE" : "UPDATE";
+      const createInvoice = await prisma.invoice.create({
+        data: {
+          clientId: parseInt(id),
+          serialId: newSerial.id,
+          type: invoiceType,
+          price: newSerial.price,
+        },
+      });
+
+      res.json({ updatedClient: client, createInvoice });
+    } else if (client.serials && client.serials.length > 0) {
+      // If no serial is provided and the client already has connected serials, update the startAt date for all serials
+      await prisma.serial.updateMany({
+        where: { id: { in: client.serials.map((s) => s.id) } },
+        data: {
+          startAt: dayjs().toISOString(),
+        },
+      });
+
+      // Update the client to type 'basic'
+      const updatedClient = await prisma.client.update({
+        where: { id: parseInt(id) },
+        data: {
+          type: "basic",
+        },
+      });
+
+      res.json({ updatedClient });
+    } else {
+      // If no serials are connected and no serial is provided in the body, return an error
+      return res.status(400).json({ error: "No serial provided and no connected serials found" });
     }
-    const invoiceType = client.type === "trial" ? "CREATE" : "UPDATE";
-
-    const updatedClient = await prisma.client.update({
-      where: { id: parseInt(id) },
-      data: {
-        type: "basic",
-      },
-    });
-
-
-    const createInvoice = await prisma.invoice.create({
-      data: {
-        clientId: parseInt(id),
-        serialId: client.serials.length > 0 ? client.serials[0].id : newSerial.id,
-        type: invoiceType,
-        price: client.serials.length > 0 ? client.serials[0].price : newSerial.price,
-      },
-    });
-
-    res.json({ updatedClient, createInvoice });
   } catch (error) {
     console.error("Error activating client:", error);
     res.status(500).json({ error: "Could not activate client" });

@@ -46,7 +46,9 @@ router.post("/create-invoice", async (req, res) => {
       });
 
       if (existingClient) {
-        return res.status(400).json({ message: "Phone number is already in use" });
+        return res
+          .status(400)
+          .json({ message: "Phone number is already in use" });
       }
 
       // Create a new client
@@ -84,10 +86,9 @@ router.post("/create-invoice", async (req, res) => {
   }
 });
 
-
 //endpoint to create a resub invoice through invoice id and then reset serial startAt to today and create a type UPDATE invoice
 router.post("/resub-invoice/:id", async (req, res) => {
-  const { price,note } = req.body;
+  const { price, note } = req.body;
   const invoiceId = req.params;
 
   try {
@@ -159,6 +160,19 @@ router.get("/invoices", async (req, res) => {
   } catch (error) {
     console.error("Error fetching invoices:", error);
     res.status(500).json({ error: "Could not fetch invoices" });
+  }
+});
+router.delete("/delete-invoice/:id", async (req, res) => {
+  const invoiceId = req.params.id;
+  try {
+    const deletedInvoice = await prisma.invoice.delete({
+      where: { id: parseInt(invoiceId) },
+    });
+
+    res.json(deletedInvoice);
+  } catch (error) {
+    console.error("Error deleting invoice:", error);
+    res.status(500).json({ error: "Could not delete invoice" });
   }
 });
 

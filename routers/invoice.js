@@ -39,6 +39,19 @@ router.post("/create-invoice", async (req, res) => {
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
       }
+
+      // Update the existing client's information
+      client = await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          name,
+          labName,
+          phone,
+          email,
+          address,
+          type,
+        },
+      });
     } else {
       // If no clientId, check if the phone number is already used
       const existingClient = await prisma.client.findUnique({
@@ -85,6 +98,7 @@ router.post("/create-invoice", async (req, res) => {
     res.status(500).json({ error: "Could not create invoice" });
   }
 });
+
 
 //endpoint to create a resub invoice through invoice id and then reset serial startAt to today and create a type UPDATE invoice
 router.post("/resub-invoice/:id", async (req, res) => {

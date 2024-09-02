@@ -162,18 +162,6 @@ router.get("/invoices", async (req, res) => {
     res.status(500).json({ error: "Could not fetch invoices" });
   }
 });
-router.delete("/delete-invoice/:id", async (req, res) => {
-  const invoiceId = req.params.id;
-  try {
-    const deletedInvoice = await prisma.invoice.delete({
-      where: { id: parseInt(invoiceId) },
-    });
 
-    res.json(deletedInvoice);
-  } catch (error) {
-    console.error("Error deleting invoice:", error);
-    res.status(500).json({ error: "Could not delete invoice" });
-  }
-});
 
 module.exports = router;

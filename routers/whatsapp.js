@@ -60,6 +60,16 @@ const uploadToLinode = async (files, phone) => {
   }
 };
 
+router.get("/whatsapp", async (req, res) => {
+  try{
+    const whatsapp = await prisma.whatsapp.findMany();
+    res.status(200).json(whatsapp);
+  }catch(error){
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Could not fetch messages" });
+  }
+});
+
 router.post("/whatsapp-message", async (req, res) => {
   const { clientId, phone, name, lab, senderPhone } = req.body;
   try {

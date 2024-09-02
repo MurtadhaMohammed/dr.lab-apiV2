@@ -8,6 +8,7 @@ const whatsappRouter = require("./routers/whatsapp");
 // const featureRouter = require("./routers/feature");
 const dashboardRouter = require("./routers/dashboard");
 const invoiceRouter = require("./routers/invoice");
+
 const fileUpload = require("express-fileupload");
 
 require("dotenv").config();
@@ -22,7 +23,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
+app.get("/api", (req, res) => {
   res.json({ msg: "hi All" });
 });
 

@@ -61,10 +61,10 @@ const uploadToLinode = async (files, phone) => {
 };
 
 router.get("/whatsapp", async (req, res) => {
-  try{
+  try {
     const whatsapp = await prisma.whatsapp.findMany();
     res.status(200).json(whatsapp);
-  }catch(error){
+  } catch (error) {
     console.error("Error fetching messages:", error);
     res.status(500).json({ error: "Could not fetch messages" });
   }
@@ -74,8 +74,8 @@ router.post("/whatsapp-message", async (req, res) => {
   const { clientId, phone, name, lab, senderPhone } = req.body;
 
   const client = await prisma.client.findUnique({
-    where : {id : parseInt(clientId)}
-  })
+    where: { id: parseInt(clientId) },
+  });
 
   if (!client) {
     return res.status(404).json({ error: "Client not found" });
@@ -90,7 +90,6 @@ router.post("/whatsapp-message", async (req, res) => {
   if (currentMessageCount >= messageLimit) {
     return res.status(403).json({ error: "Message limit exceeded the plan" });
   }
-
 
   try {
     const url = await uploadToLinode(req.files, phone);
@@ -167,26 +166,28 @@ router.post("/whatsapp-message", async (req, res) => {
     res.status(200).json({ message: "Message sent successfully", resp });
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({ error: "An error occurred while sending the message" });
+    res
+      .status(500)
+      .json({ error: "An error occurred while sending the message" });
   }
 });
 
 async function getWhatsappCount(clientId) {
-  if (isNaN(clientId)) {
-    throw new Error('Invalid client ID');
+  if (!clientId) {
+    throw new Error("Invalid client ID");
   }
 
   const firstSerial = await prisma.serial.findFirst({
     where: { clientId: clientId },
-    orderBy: { startAt: 'asc' },
+    orderBy: { startAt: "asc" },
   });
 
   if (!firstSerial) {
-    throw new Error('No serial found for the client');
+    throw new Error("No serial found for the client");
   }
 
-  const start = dayjs(firstSerial.startAt).startOf('month');
-  const end = start.endOf('month');
+  const start = dayjs(firstSerial.startAt).startOf("month");
+  const end = start.endOf("month");
 
   const count = await prisma.whatsapp.count({
     where: {
@@ -198,23 +199,30 @@ async function getWhatsappCount(clientId) {
     },
   });
 
+  const updateClient = await prisma.client.update({
+    where: { id: clientId },
+    data: { whatsapp: count },
+  });
+
   return count;
 }
 
-router.get('/whatsapp-count/:clientId', async (req, res) => {
+router.get("/whatsapp-count/:clientId", async (req, res) => {
   const clientId = parseInt(req.params.clientId);
 
   try {
     const count = await getWhatsappCount(clientId);
-    res.json({ clientId, count });
+    res.status(200).json({ clientId, count });
   } catch (error) {
-    if (error.message === 'Invalid client ID') {
+    if (error.message === "Invalid client ID") {
       res.status(400).json({ error: error.message });
-    } else if (error.message === 'No serial found for the client') {
+    } else if (error.message === "No serial found for the client") {
       res.status(404).json({ error: error.message });
     } else {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'An error occurred while counting messages' });
+      console.error("Error:", error);
+      res
+        .status(500)
+        .json({ error: "An error occurred while counting messages" });
     }
   }
 });

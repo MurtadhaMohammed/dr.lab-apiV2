@@ -72,7 +72,26 @@ router.get("/whatsapp", async (req, res) => {
 
 router.post("/whatsapp-message", async (req, res) => {
   const { clientId, phone, name, lab, senderPhone } = req.body;
-  
+
+  const client = await prisma.client.findUnique({
+    where : {id : parseInt(clientId)}
+  })
+
+  if (!client) {
+    return res.status(404).json({ error: "Client not found" });
+  }
+  const limits = {
+    basic: 50,
+    premium: 1000,
+  };
+
+  const messageLimit = limits[client.type];
+
+  if (currentMessageCount >= messageLimit) {
+    return res.status(403).json({ error: "Message limit exceeded the plan" });
+  }
+
+
   try {
     const url = await uploadToLinode(req.files, phone);
     if (!url) {
@@ -152,43 +171,51 @@ router.post("/whatsapp-message", async (req, res) => {
   }
 });
 
-router.get("/whatsapp-count/:clientId", async (req, res) => {
-  const clientId = parseInt(req.params.clientId);
-
+async function getWhatsappCount(clientId) {
   if (isNaN(clientId)) {
-    return res.status(400).json({ error: "Invalid client ID" });
+    throw new Error('Invalid client ID');
   }
 
+  const firstSerial = await prisma.serial.findFirst({
+    where: { clientId: clientId },
+    orderBy: { startAt: 'asc' },
+  });
+
+  if (!firstSerial) {
+    throw new Error('No serial found for the client');
+  }
+
+  const start = dayjs(firstSerial.startAt).startOf('month');
+  const end = start.endOf('month');
+
+  const count = await prisma.whatsapp.count({
+    where: {
+      clientId: clientId,
+      createdAt: {
+        gte: start.toDate(),
+        lt: end.toDate(),
+      },
+    },
+  });
+
+  return count;
+}
+
+router.get('/whatsapp-count/:clientId', async (req, res) => {
+  const clientId = parseInt(req.params.clientId);
+
   try {
-    const firstSerial = await prisma.serial.findFirst({
-      where: { clientId: clientId },
-      orderBy: { startAt: 'asc' },
-    });
-
-    if (!firstSerial) {
-      return res.status(404).json({ error: "No serial found for the client" });
-    }
-
-    let count = 0; 
-
-      const start = dayjs(firstSerial.startAt).startOf('month');
-      const end = start.endOf('month');
-
-      count = await prisma.whatsapp.count({
-        where: {
-          clientId: clientId,
-          createdAt: {
-            gte: start.toDate(),
-            lt: end.toDate(),
-          },
-        },
-      });
-    
-
+    const count = await getWhatsappCount(clientId);
     res.json({ clientId, count });
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: "An error occurred while counting messages" });
+    if (error.message === 'Invalid client ID') {
+      res.status(400).json({ error: error.message });
+    } else if (error.message === 'No serial found for the client') {
+      res.status(404).json({ error: error.message });
+    } else {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'An error occurred while counting messages' });
+    }
   }
 });
 

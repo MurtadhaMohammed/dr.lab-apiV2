@@ -85,9 +85,11 @@ router.post("/whatsapp-message", async (req, res) => {
     premium: 1000,
   };
 
+  const count = await getWhatsappCount(parseInt(clientId));
+
   const messageLimit = limits[client.type];
 
-  if (currentMessageCount >= messageLimit) {
+  if (count >= messageLimit) {
     return res.status(403).json({ error: "Message limit exceeded the plan" });
   }
 
@@ -201,7 +203,7 @@ async function getWhatsappCount(clientId) {
 
   const updateClient = await prisma.client.update({
     where: { id: clientId },
-    data: { whatsapp: count },
+    data: { messages: parseInt(count) },
   });
 
   return count;

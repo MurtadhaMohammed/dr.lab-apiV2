@@ -115,7 +115,6 @@ router.post("/resub-invoice/:id", async (req, res) => {
       return res.status(404).json({ message: "Invoice not found" });
     }
 
-    // Find the client using the client ID
     const foundClient = await prisma.client.findFirst({
       where: { id: foundInvoice.clientId },
     });
@@ -124,7 +123,6 @@ router.post("/resub-invoice/:id", async (req, res) => {
       return res.status(404).json({ message: "Client not found" });
     }
 
-    // Find the serial using the serial ID
     const foundSerial = await prisma.serial.findFirst({
       where: { id: foundInvoice.serialId },
     });
@@ -133,7 +131,6 @@ router.post("/resub-invoice/:id", async (req, res) => {
       return res.status(404).json({ message: "Serial not found" });
     }
 
-    // Create a new invoice with the same client and serial
     const newInvoice = await prisma.invoice.create({
       data: {
         price,
@@ -144,7 +141,6 @@ router.post("/resub-invoice/:id", async (req, res) => {
       },
     });
 
-    // Update the serial to reset the startAt date to today
     await prisma.serial.update({
       where: { id: foundSerial.id },
       data: { startAt: dayjs().toISOString() },

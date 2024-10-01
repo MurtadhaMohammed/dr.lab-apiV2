@@ -440,4 +440,22 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// Endpoint to fetch all subscriptions
+router.get("/subscriptions", async (req, res) => {
+  try {
+    const subscriptions = await prisma.subscription.findMany({
+      include: {
+        client: true,
+        serial: true,
+      },
+    });
+
+    res.json(subscriptions);
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    res.status(500).json({ error: "Could not fetch subscriptions" });
+  }
+});
+
+
 module.exports = router;

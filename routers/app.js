@@ -138,7 +138,6 @@ const generateUniqueSerial = async () => {
       where: { serial },
     });
   } while (existingSerial);
-  console.log(serial);
 
   return serial;
 };

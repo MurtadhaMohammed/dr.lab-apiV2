@@ -110,7 +110,7 @@ router.post("/whatsapp-message", async (req, res) => {
         createdAt: dayjs().toISOString(),
       },
     });
-
+    console.log(process.env.WHATSAPP_TOKEN,"tokeeeeeeeeeeeeeeeeeen");
     const response = await fetch(
       "https://graph.facebook.com/v20.0/142971062224854/messages",
       {

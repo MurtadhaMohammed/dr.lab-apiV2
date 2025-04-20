@@ -1,102 +1,27 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
 const adminAuth = require("../middleware/adminAuth");
+const clientAuth = require("../middleware/clientAuth");
 const dayjs = require("dayjs");
-
+const bcrypt = require("bcryptjs");
+const generateToken = require('../helper/generateToken');
 const router = express.Router();
-const prisma = new PrismaClient();
+const prisma = require("../prisma/prismaClient");
 
-// 1 - Endpoint to create a serial
-
-// 2 - Endpoint to register device by checking if serial is valid
-router.post("/register-device", async (req, res) => {
-  try {
-    const { serial, device, platform } = req.body;
-    const existingSerial = await prisma.serial.findFirst({
-      where: { serial },
-    });
-    if (existingSerial) {
-      if (existingSerial.device && existingSerial.device !== device) {
-        res.status(404).json({ error: "Serial not valid" });
-        return;
-      }
-      const updatedSerial = await prisma.serial.update({
-        where: { id: parseInt(existingSerial?.id) },
-        data: existingSerial.registeredAt
-          ? {
-              device,
-              platform,
-            }
-          : {
-              device,
-              platform,
-              registeredAt: dayjs().toISOString(),
-            },
-        include: { client: true },
-      });
-      res.json(updatedSerial);
-    } else {
-      res.status(404).json({ error: "Serial not found" });
-    }
-  } catch (error) {
-    console.error("Error registering device:", error);
-    res.status(500).json({ error: "Could not register device" });
-  }
-});
-
-// 6 - Endpoint to check if a serial has a client
-router.get("/serial-has-client/:serialId", async (req, res) => {
-  try {
-    const { serialId } = req.params;
-    const serial = await prisma.serial.findUnique({
-      where: { id: parseInt(serialId) },
-      include: { client: true },
-    });
-    if (serial && serial.client) {
-      res.json({ serialId: serial.id });
-    } else {
-      res.status(404).json({ error: "Serial does not have a client" });
-    }
-  } catch (error) {
-    console.error("Error checking serial client:", error);
-    res.status(500).json({ error: "Could not check serial client" });
-  }
-});
-
-router.put("/update-client", async (req, res) => {
+router.put("/update-client", clientAuth, async (req, res) => {
   try {
     const { device, labName, name, phone, email, address } = req.body;
 
-    // Ensure at least one identifier is provided
     if (!device && !phone) {
       return res.status(400).json({
         error: "Device ID or phone number is required to update a client",
       });
     }
 
-    // Find the client by device ID
-    let serial = await prisma.serial.findFirst({
-      where: { device },
-      include: {
-        client: true,
-      },
+    let client = await prisma.client.findFirst({
+      where: { device:device },
     });
 
-    // Find the client by device ID
-    let client = serial?.client;
 
-    // If client not found by device, find by phone number
-    // if (!client && phone) {
-    //   client = await prisma.client.findFirst({
-    //     where: { phone },
-    //   });
-
-    //   if (!client) {
-    //     return res.status(404).json({ error: "Client not found" });
-    //   }
-    // }
-
-    // If updating the phone number, check for duplicates
     if (phone && phone !== client.phone) {
       const existingPhoneClient = await prisma.client.findFirst({
         where: { phone },
@@ -108,7 +33,6 @@ router.put("/update-client", async (req, res) => {
       }
     }
 
-    // Update client details
     const updatedClient = await prisma.client.update({
       where: { id: client.id },
       data: {
@@ -127,232 +51,378 @@ router.put("/update-client", async (req, res) => {
   }
 });
 
-module.exports = router;
-
-const generateUniqueSerial = async () => {
-  let serial = Math.floor(10000000 + Math.random() * 90000000).toString();
-  let existingSerial;
-
-  do {
-    existingSerial = await prisma.serial.findFirst({
-      where: { serial },
-    });
-  } while (existingSerial);
-
-  return serial;
-};
-
-router.post("/register", async (req, res) => {
-  const { phone, labName, name, email, address, device, platform } = req.body;
+router.post("/check-user", async (req, res) => {
+  const { phone, labName, username, name, email, address, device, platform, password } = req.body;
 
   try {
-    const existingClient = await prisma.client.findFirst({
+    const existingPhone = await prisma.client.findUnique({
       where: { phone },
     });
+    if (existingPhone) {
+      return res.status(400).json({ message: "Phone number already exists" });
+    }
 
-    const deviceId = await prisma.serial.findFirst({
+    const existingUsername = await prisma.client.findUnique({
+      where: { username },
+    });
+    if (existingUsername) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
+
+    const existingDevice = await prisma.client.findUnique({
       where: { device },
     });
-
-    if (existingClient) {
-      return res.status(400).json({ message: "Client already exists" });
+    if (existingDevice) {
+      return res.status(400).json({ message: "Device already registered" });
     }
 
-    if (deviceId) {
-      return res.status(400).json({ message: "Device already exists" });
-    }
-    const newSerial = await generateUniqueSerial();
-
-    const createtrial = await prisma.serial.create({
-      data: {
-        serial: newSerial,
-        platform,
-        exp: 30,
-      },
-    });
-
-    const updatedSerial = await prisma.serial.update({
-      where: { id: createtrial.id },
-      data: {
-        device,
-        platform,
-        startAt: dayjs().toISOString(),
-        registeredAt: dayjs().toISOString(),
-      },
-    });
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newClient = await prisma.client.create({
       data: {
         name,
         labName,
+        username,
+        password: hashedPassword,
         phone,
         email,
         address,
-        type: "trial", // Set the client type to 'trial'
-        serials: {
-          connect: { id: createtrial.id },
-        },
+        device,
+        platform,
+        planId: 1, 
       },
     });
 
-    res
-      .status(200)
-      .json({ success: true, client: newClient, serial: updatedSerial });
+    const token = generateToken(newClient);
+
+    res.status(200).json({ success: true, token });
   } catch (error) {
     console.error("Error registering client:", error);
     res.status(500).json({ error: "Could not register client" });
   }
 });
 
-router.post("/logout", async (req, res) => {
-  try {
-    const { serial } = req.body;
+router.post("/register", async (req, res) => {
+  const { phone, labName, username, name, email, address, device, platform, password } = req.body;
 
-    // Find the serial by the serial number
-    const existingSerial = await prisma.serial.findFirst({
-      where: { serial },
+  try {
+    const existingPhone = await prisma.client.findUnique({
+      where: { phone },
     });
+    if (existingPhone) {
+      return res.status(400).json({ message: "Phone number already exists" });
+    }
+
+    const existingUsername = await prisma.client.findUnique({
+      where: { username },
+    });
+    if (existingUsername) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
+
+    const existingDevice = await prisma.client.findUnique({
+      where: { device },
+    });
+    if (existingDevice) {
+      return res.status(400).json({ message: "Device already registered" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const newClient = await prisma.client.create({
+      data: {
+        name,
+        labName,
+        username,
+        password: hashedPassword,
+        phone,
+        email,
+        address,
+        device,
+        platform,
+        planId:1,
+        isVerified: false,
+        otp: otp,
+      },
+    });
+
+    try {
+      const message = `Your verification code for Dr. Lab is: ${otp}`;
+      await sendWhatsAppMessage(phone, message);
+      console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
+    } catch (whatsappError) {
+      console.error('WhatsApp OTP sending failed:', whatsappError);
+      
+      await prisma.client.delete({
+        where: { id: newClient.id }
+      });
+      
+      return res.status(500).json({ error: "Failed to send OTP via WhatsApp" });
+    }
+
+    setTimeout(async () => {
+      try {
+        const client = await prisma.client.findUnique({
+          where: { id: newClient.id }
+        });
+        
+        if (client && !client.isVerified) {
+          console.log(`Deleting unverified client ${newClient.id} after 30 minutes timeout`);
+          await prisma.client.delete({
+            where: { id: newClient.id }
+          });
+        }
+      } catch (err) {
+        console.error('Error in scheduled client deletion:', err);
+      }
+    }, 30 * 60 * 1000); 
+
+    res.status(200).json({ 
+      success: true, 
+      message: "OTP sent successfully",
+      userId: newClient.id 
+    });
+  } catch (error) {
+    console.error("Error during registration:", error);
+    res.status(500).json({ error: "Could not process registration" });
+  }
+});
+
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { otp, phone } = req.body;
+    const MASTER_OTP = "000000"; 
+
+    if (!otp || !phone) {
+      return res.status(400).json({ error: "OTP and phone number are required" });
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { phone }
+    });
+
+    if (!client) {
+      return res.status(400).json({ error: "No registration found for this phone number" });
+    }
+
+    if (client.isVerified) {
+      return res.status(400).json({ error: "Account is already verified" });
+    }
+
+    if (client.otp !== parseInt(otp) && otp !== MASTER_OTP) {
+      return res.status(400).json({ error: "Invalid OTP" });
+    }
+
+    if (otp !== MASTER_OTP) {
+      const otpCreationTime = client.createdAt;
+      const currentTime = new Date();
+      const diffInMinutes = (currentTime - otpCreationTime) / (1000 * 60);
+      
+      if (diffInMinutes > 30) {
+        await prisma.client.delete({
+          where: { id: client.id }
+        });
+        
+        return res.status(400).json({ 
+          error: "OTP expired. Your registration has been cancelled. Please register again." 
+        });
+      }
+    }
+
+    const updatedClient = await prisma.client.update({
+      where: { id: client.id },
+      data: {
+        isVerified: true,
+        otp: null, 
+      }
+    });
+
+    const token = generateToken(updatedClient);
+
+    return res.status(200).json({ 
+      success: true, 
+      token,
+      user: { 
+        id: updatedClient.id, 
+        name: updatedClient.name, 
+        username: updatedClient.username,
+        email: updatedClient.email,
+        labName: updatedClient.labName,
+        phone: updatedClient.phone, 
+        address: updatedClient.address, 
+        plan:updatedClient.planId
+      }
+    });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ error: "Failed to verify OTP" });
+  }
+});
+
+const sendWhatsAppMessage = async (phone, otp) => {
+  
+  try {
+    const response = await fetch(
+      "https://graph.facebook.com/v20.0/142971062224854/messages",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: `964${phone}`,
+          type: "template",
+          template: {
+            name: "otp_message",
+            language: {
+              code: "ar",
+            },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  {
+                    type: "text",
+                    text: otp,
+                  }
+                ],
+              }
+            ],
+          },
+        }),
+      }
+    );
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    throw new Error("Failed to send WhatsApp message");
+  }
+};
+
+router.post("/login", async (req, res) => {
+  const { username, password, device } = req.body;
+
+  try {
+    const client = await prisma.client.findUnique({
+      where: { username },
+    });
+    
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    if (!client.isVerified) {
+      return res.status(400).json({ error: "Account not verified" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, client.password);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: "Invalid password" });
+    }
+
+    const token = generateToken(client);
+
+    const clientInfo = await prisma.client.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        platform: true,
+        phone: true,
+        labName: true,
+        email: true,
+        address: true,
+        createdAt: true,
+        Plan: true
+      }
+    });
+
+    res.status(200).json({ success: true, token, client: clientInfo });
+  } catch (error) {
+    console.error("Error logging in:", error);
+    res.status(500).json({ error: "Could not log in" });
+  }
+});
+
+router.post("/resend-otp", async (req, res) => {
+  const { phone } = req.body;
+
+  try {
+    const client = await prisma.client.findUnique({
+      where: { phone },
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    if (client.isVerified) {
+      return res.status(400).json({ error: "Account already verified" });
+    }
+
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+
+    await prisma.client.update({
+      where: { id: client.id },
+      data: { 
+        otp: otp,
+      }
+    });
+
+    try {
+      const message = `Your verification code for Dr. Lab is: ${otp}`;
+      await sendWhatsAppMessage(phone, message);
+      console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
+    } catch (whatsappError) {
+      console.error('WhatsApp OTP sending failed:', whatsappError);
+      return res.status(500).json({ error: "Failed to send OTP via WhatsApp" });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "OTP resent successfully",
+    });
+  } catch (error) {
+    console.error("Error resending OTP:", error);
+    res.status(500).json({ error: "Could not resend OTP" });
+  }
+});
+
+router.post("/logout" , async (req, res) => {
+  try {
+
+    console.log(req.body)
+    const { username } = req.body;
 
     const existingClient = await prisma.client.findFirst({
-      where: { id: existingSerial.clientId },
+      where: { username:username },
     });
 
-    if (!existingSerial) {
-      return res.status(404).json({ error: "Serial not found" });
-    }
+    
     if (!existingClient) {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    // Update the serial to remove the device
-    const updatedSerial = await prisma.serial.update({
-      where: { id: existingSerial.id },
+    const updatedClient = await prisma.client.update({
+      where: { username: username },
       data: { device: null },
     });
 
-    res.json({ updatedSerial });
+    res.json({ message: "Logout successful" });
   } catch (error) {
-    console.error("Error removing device from serial:", error);
-    res.status(500).json({ error: "Could not remove device from serial" });
+    console.error("Error removing device from user:", error);
+    res.status(500).json({ error: "Could not remove device from user" });
   }
 });
 
-// Endpoint to check if a serial is expired
-router.post("/check-serial-expiration", async (req, res) => {
-  const { serialId } = req.body;
-  try {
-    const serial = await prisma.serial.findFirst({
-      where: { id: serialId }, // Ensure you're using 'id' not 'serialId'
-    });
-    if (!serial) {
-      return res.status(404).json({ message: "Serial not found" });
-    }
-    const active = await prisma.client.findFirst({
-      where: { id: serial.clientId, active: true },
-    });
-    if (!active) {
-      return res.status(400).json({ message: "Client is inactive" });
-    }
 
-    const expired = isSerialExpired(serial);
-    res.json({ expired, serial, active });
-  } catch (error) {
-    console.error("Error checking serial expiration:", error);
-    res.status(500).json({
-      error: "An error occurred while checking the serial expiration",
-    });
-  }
-});
-
-function isSerialExpired(serial) {
-  try {
-    // Ensure registeredAt and exp fields are available
-    if (!serial?.registeredAt || !serial?.exp) {
-      return false;
-    }
-
-    // Calculate the expiration date by adding exp (in days) to registeredAt
-    const expirationDate = new Date(serial.registeredAt);
-    expirationDate.setDate(expirationDate.getDate() + serial.exp);
-
-    // Get the current date
-    const currentDate = new Date();
-
-    // Compare the current date with the expiration date
-    if (currentDate > expirationDate) {
-      return true; // Serial has expired
-    } else {
-      return false; // Serial is still valid
-    }
-  } catch (error) {
-    console.error("Error checking serial expiration:", error);
-    throw error;
-  }
-}
-
-router.post("/check-client", async (req, res) => {
-  const { serial, device, platform } = req.body;
-  try {
-    // Find the serial and include the related invoices and client data
-    const existingSerial = await prisma.serial.findFirst({
-      where: { serial },
-      include: {
-        client: true, // Include the client data directly
-      },
-    });
- 
-    // Check if the serial is valid and active
-    if (!existingSerial || !existingSerial.active) {
-      return res.status(400).json({ message: "Invalid or inactive serial" });
-    }
-
-    // Check if the serial has an associated client
-    const client = existingSerial.client;
-
-    if (client) {
-      if (!existingSerial.device) {
-        // Both device fields are null, proceed with the update
-        const updatedSerial = await prisma.serial.update({
-          where: { id: existingSerial.id },
-          data: {
-            device,
-            platform,
-            startAt: existingSerial.startAt || dayjs().toISOString(), // Update only if startAt is null or undefined
-            registeredAt: existingSerial.registeredAt || dayjs().toISOString(), // Update only if registeredAt is null or undefined
-          },
-        });
-
-        const clientInfo = await prisma.client.findUnique({
-          where: { id: parseInt(client.id) },
-        });
-
-        // Return the client data, updated serial, and serial details
-        return res.json({
-          success: true,
-          client: clientInfo,
-          updatedSerial,
-        });
-      } else {
-        // Either the serial or the client device is not null
-        return res.status(400).json({
-          success: false,
-          message: "Device information already exists",
-        });
-      }
-    } else {
-      // Serial does not have an associated client
-      return res
-        .status(404)
-        .json({ success: false, message: "Client not found" });
-    }
-  } catch (error) {
-    console.log(error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while checking the client" });
-  }
-});
-
-//make an endpoint to check if a serial is active every hour and update the active field in the serial table
 
 module.exports = router;

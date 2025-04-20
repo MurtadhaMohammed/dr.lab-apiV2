@@ -1,13 +1,18 @@
 const express = require("express");
 var cors = require("cors");
 const app = express();
-const port = 3000;
+
+// Load config based on environment
+const port = process.env.PORT || 3000;
+
+// Import routers
 const adminRouter = require("./routers/admin");
-const appRouter = require("./routers/app");
-const whatsappRouter = require("./routers/whatsapp");
-// const featureRouter = require("./routers/feature");
-const dashboardRouter = require("./routers/dashboard");
+const clientRouter = require("./routers/client");
+const planRouter = require("./routers/plan");
 const invoiceRouter = require("./routers/invoice");
+const whatsappRouter = require("./routers/whatsapp");
+// const dashboardRouter = require("./routers/dashboard")
+const appRouter = require("./routers/app");
 
 const fileUpload = require("express-fileupload");
 
@@ -27,12 +32,14 @@ app.get("/api", (req, res) => {
   res.json({ msg: "hi All" });
 });
 
+// Use routers
 app.use("/api/admin", adminRouter);
-app.use("/api/app", appRouter);
-app.use("/api/send", whatsappRouter);
-// app.use("/api/feature", featureRouter);
-app.use("/api/dashboard", dashboardRouter);
+app.use("/api/client", clientRouter);
+// app.use("/api/dashboard", dashboardRouter);
+app.use("/api/plan", planRouter);
 app.use("/api/invoice", invoiceRouter);
+app.use("/api/whatsapp", whatsappRouter);
+app.use("/api/app", appRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

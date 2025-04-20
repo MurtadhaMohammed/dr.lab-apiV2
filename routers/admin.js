@@ -1,12 +1,11 @@
 const express = require("express");
-const prisma = require("../prismaClient");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const prisma = require("../prisma/prismaClient");
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET; // Replace with your actual secret
 
-// Register Admin
 router.post("/register", async (req, res) => {
   const { name, username, password } = req.body;
   try {
@@ -20,7 +19,6 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Login Admin
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
   try {

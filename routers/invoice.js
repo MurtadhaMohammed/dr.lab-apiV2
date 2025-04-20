@@ -1,171 +1,31 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
 const adminAuth = require("../middleware/adminAuth");
+const prisma = require("../prisma/prismaClient");
 const dayjs = require("dayjs");
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
-router.post("/create-invoice", async (req, res) => {
-  const { serial, price, clientId } = req.body;
-  const { name, labName, phone, email, address, type } = req.body;
-
+router.get("/all", adminAuth, async (req, res) => {
   try {
-    // Find the serial using the serial number
-    const foundSerial = await prisma.serial.findFirst({
-      where: { serial },
-    });
-
-    if (!foundSerial) {
-      return res.status(404).json({ message: "Serial not found" });
-    }
-
-    const usedSerial = await prisma.serial.findFirst({
-      where: { serial, clientId: { not: null } },
-    });
-
-    if (usedSerial) {
-      return res.status(400).json({ message: "Serial already in use" });
-    }
-
-    let client;
-
-    if (clientId) {
-      // If clientId is provided, find the existing client
-      client = await prisma.client.findUnique({
-        where: { id: clientId },
-      });
-
-      if (!client) {
-        return res.status(404).json({ message: "Client not found" });
-      }
-
-      // Update the existing client's information
-      client = await prisma.client.update({
-        where: { id: clientId },
-        data: {
-          name,
-          labName,
-          phone,
-          email,
-          address,
-          type,
-        },
-      });
-    } else {
-      // If no clientId, check if the phone number is already used
-      const existingClient = await prisma.client.findUnique({
-        where: { phone },
-      });
-
-      if (existingClient) {
-        return res
-          .status(400)
-          .json({ message: "Phone number is already in use" });
-      }
-
-      // Create a new client
-      client = await prisma.client.create({
-        data: {
-          name,
-          labName,
-          phone,
-          email,
-          address,
-          type,
-        },
-      });
-    }
-
-    // Connect the serial to the client
-    await prisma.serial.update({
-      where: { id: foundSerial.id },
-      data: { clientId: client.id },
-    });
-
-    // Create the invoice and connect it to the client and serial
-    const newInvoice = await prisma.invoice.create({
-      data: {
-        price,
-        clientId: client.id,
-        serialId: foundSerial.id,
-      },
-    });
-
-    res.json(newInvoice);
-  } catch (error) {
-    console.error("Error creating invoice:", error);
-    res.status(500).json({ error: "Could not create invoice" });
-  }
-});
-
-
-//endpoint to create a resub invoice through invoice id and then reset serial startAt to today and create a type UPDATE invoice
-router.post("/resub-invoice/:id", async (req, res) => {
-  const { price, note } = req.body;
-  const invoiceId = req.params;
-
-  try {
-    // Find the invoice using the invoice ID
-    const foundInvoice = await prisma.invoice.findFirst({
-      where: { id: invoiceId },
-    });
-
-    if (!foundInvoice) {
-      return res.status(404).json({ message: "Invoice not found" });
-    }
-
-    const foundClient = await prisma.client.findFirst({
-      where: { id: foundInvoice.clientId },
-    });
-
-    if (!foundClient) {
-      return res.status(404).json({ message: "Client not found" });
-    }
-
-    const foundSerial = await prisma.serial.findFirst({
-      where: { id: foundInvoice.serialId },
-    });
-
-    if (!foundSerial) {
-      return res.status(404).json({ message: "Serial not found" });
-    }
-
-    const newInvoice = await prisma.invoice.create({
-      data: {
-        price,
-        note,
-        clientId: foundClient.id,
-        serialId: foundSerial.id,
-        type: "UPDATE",
-      },
-    });
-
-    await prisma.serial.update({
-      where: { id: foundSerial.id },
-      data: { startAt: dayjs().toISOString() },
-    });
-
-    res.json(newInvoice);
-  } catch (error) {
-    console.error("Error resubmitting invoice:", error);
-    res.status(500).json({ error: "Could not resubmit invoice" });
-  }
-});
-
-router.get("/invoices", async (req, res) => {
-  try {
-    const { name, phone, serial } = req.query;
-
     const invoices = await prisma.invoice.findMany({
-      where: {
-        client: { phone: { contains: phone, mode: "insensitive" } },
-      },
-      include: {
-        client: true,
-      },
+      select: {
+        id: true,
+        type: true,
+        price: true,
+        createdAt: true,
+        client: {
+          select: {
+            name: true,
+            labName: true
+          }
+        },
+        Plan: {
+          select: {
+            name: true
+          }
+        }
+      }
     });
-
     res.json(invoices);
   } catch (error) {
     console.error("Error fetching invoices:", error);
@@ -173,5 +33,133 @@ router.get("/invoices", async (req, res) => {
   }
 });
 
+router.get("/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: parseInt(id) },
+      select: {
+        id: true,
+        type: true,
+        price: true,
+        createdAt: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            labName: true,
+            phone: true
+          }
+        },
+        Plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true
+          }
+        }
+      }
+    });
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+    res.json(invoice);
+  } catch (error) {
+    console.error("Error fetching invoice:", error);
+    res.status(500).json({ error: "Could not fetch invoice" });
+  }
+});
+
+// Create invoice
+router.post("/", adminAuth, async (req, res) => {
+  try {
+    const { type, price, clientId, planId } = req.body;
+    const newInvoice = await prisma.invoice.create({
+      data: {
+        type,
+        price,
+        clientId,
+        planId
+      },
+      select: {
+        id: true,
+        type: true,
+        price: true,
+        createdAt: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            labName: true
+          }
+        },
+        Plan: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+    res.json(newInvoice);
+  } catch (error) {
+    console.error("Error creating invoice:", error);
+    res.status(500).json({ error: "Could not create invoice" });
+  }
+});
+
+// Update invoice
+router.put("/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, price, clientId, planId } = req.body;
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id: parseInt(id) },
+      data: {
+        type,
+        price,
+        clientId,
+        planId
+      },
+      select: {
+        id: true,
+        type: true,
+        price: true,
+        createdAt: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            labName: true
+          }
+        },
+        Plan: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+    res.json(updatedInvoice);
+  } catch (error) {
+    console.error("Error updating invoice:", error);
+    res.status(500).json({ error: "Could not update invoice" });
+  }
+});
+
+// Delete invoice
+router.delete("/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.invoice.delete({
+      where: { id: parseInt(id) }
+    });
+    res.json({ message: "Invoice deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting invoice:", error);
+    res.status(500).json({ error: "Could not delete invoice" });
+  }
+});
 
 module.exports = router;

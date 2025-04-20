@@ -12,48 +12,53 @@ model Admin {
   name      String?
   username  String   @unique
   password  String
-  createtAt DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Client {
   id        Int        @id @default(autoincrement())
   name      String
+  password  String
+  username  String     @unique
   labName   String?
   phone     String     @unique
   email     String?
   address   String?
   active    Boolean    @default(true)
   createdAt DateTime   @default(now())
-  type      ClientType @default(trial)
+  device    String?    @unique
+  otp       Int?
+  isVerified Boolean? @default(false)
   messages  Int?       @default(0)
+  printCount Int?      @default(0)
   invoices  Invoice[]
-  serials   Serial[]
   whatsapp  Whatsapp[]
+  platform  String?
+  planId    Int 
+  Plan      Plan? @relation(fields: [planId], references: [id])
 }
 
-model Serial {
-  id           Int       @id @default(autoincrement())
-  serial       String    @unique
-  exp          Int
-  active       Boolean   @default(true)
-  device       String?   @unique
-  startAt      DateTime?
-  registeredAt DateTime?
-  price        Float     @default(0)
-  createdAt    DateTime  @default(now())
-  clientId     Int?
-  platform     String?
-  client       Client?   @relation(fields: [clientId], references: [id])
+model Plan {
+  id            Int       @id @default(autoincrement())
+  name          String    
+  price         Int
+  whatsappLimit Int?
+  printLimit    Int?
+  createdAt     DateTime  @default(now())
+  Active        Boolean   @default(true)
+  clients       Client[]
+  invoices      Invoice[]
 }
 
 model Invoice {
   id        Int         @id @default(autoincrement())
-  serialId  Int
+  planId    Int
   type      InvoiceType @default(CREATE)
   price     Float
   clientId  Int?
   createdAt DateTime    @default(now())
   client    Client?     @relation(fields: [clientId], references: [id])
+  Plan      Plan? @relation(fields: [planId], references: [id])
 }
 
 model Whatsapp {
@@ -73,11 +78,4 @@ enum InvoiceType {
   CREATE
   UPDATE
   SUPPORT
-}
-
-enum ClientType {
-  trial
-  basic
-  premium
-  enterprise
 }

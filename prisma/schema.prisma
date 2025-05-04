@@ -16,31 +16,31 @@ model Admin {
 }
 
 model Client {
-  id        Int        @id @default(autoincrement())
-  name      String
-  password  String
-  username  String     @unique
-  labName   String?
-  phone     String     @unique
-  email     String?
-  address   String?
-  active    Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  device    String?    @unique
-  otp       Int?
-  isVerified Boolean? @default(false)
-  messages  Int?       @default(0)
-  printCount Int?      @default(0)
-  invoices  Invoice[]
-  whatsapp  Whatsapp[]
-  platform  String?
-  planId    Int 
-  Plan      Plan? @relation(fields: [planId], references: [id])
+  id         Int        @id @default(autoincrement())
+  name       String
+  password   String
+  username   String     @unique
+  labName    String?
+  phone      String     @unique
+  email      String?
+  address    String?
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  device     String?    @unique
+  otp        Int?
+  isVerified Boolean?   @default(false)
+  messages   Int?       @default(0)
+  printCount Int?       @default(0)
+  invoices   Invoice[]
+  whatsapp   Whatsapp[]
+  platform   String?
+  planId     Int
+  Plan       Plan?      @relation(fields: [planId], references: [id])
 }
 
 model Plan {
   id            Int       @id @default(autoincrement())
-  name          String    
+  name          String
   price         Int
   whatsappLimit Int?
   printLimit    Int?
@@ -58,7 +58,7 @@ model Invoice {
   clientId  Int?
   createdAt DateTime    @default(now())
   client    Client?     @relation(fields: [clientId], references: [id])
-  Plan      Plan? @relation(fields: [planId], references: [id])
+  Plan      Plan?       @relation(fields: [planId], references: [id])
 }
 
 model Whatsapp {

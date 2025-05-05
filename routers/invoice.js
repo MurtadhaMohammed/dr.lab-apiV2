@@ -24,6 +24,10 @@ router.get("/all", adminAuth, async (req, res) => {
             name: true
           }
         }
+        
+      },
+      orderBy: {
+        createdAt: 'desc', 
       }
     });
     res.json(invoices);
@@ -70,38 +74,48 @@ router.get("/:id", adminAuth, async (req, res) => {
   }
 });
 
-// Create invoice
 router.post("/", adminAuth, async (req, res) => {
   try {
     const { type, price, clientId, planId } = req.body;
+
+    if (!clientId || !planId || !type) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const plan = await prisma.plan.findUnique({
+      where: { id: parseInt(planId) }
+    });
+
+    if (!plan) {
+      return res.status(404).json({ error: "Plan not found" });
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id: parseInt(clientId) }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
     const newInvoice = await prisma.invoice.create({
       data: {
         type,
-        price,
-        clientId,
-        planId
-      },
-      select: {
-        id: true,
-        type: true,
-        price: true,
-        createdAt: true,
+        price: price || plan.price,
         client: {
-          select: {
-            id: true,
-            name: true,
-            labName: true
-          }
+          connect: { id: parseInt(clientId) }
         },
         Plan: {
-          select: {
-            id: true,
-            name: true
-          }
+          connect: { id: parseInt(planId) }
         }
+      },
+      include: {
+        client: true,
+        Plan: true
       }
     });
-    res.json(newInvoice);
+
+    res.json({ message: "Invoice created successfully", invoice: newInvoice });
   } catch (error) {
     console.error("Error creating invoice:", error);
     res.status(500).json({ error: "Could not create invoice" });

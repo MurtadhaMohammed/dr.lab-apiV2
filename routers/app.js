@@ -261,9 +261,47 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
-const sendWhatsAppMessage = async (phone, otp) => {
-  
+const sendWhatsAppMessage = async (phone, otpCode) => {
   try {
+    const phoneStr = String(phone);
+    const formattedPhone = phoneStr.startsWith('0')
+      ? `964${phoneStr.substring(1)}`
+      : `964${phoneStr}`;
+
+    const payload = {
+      messaging_product: "whatsapp",
+      to: formattedPhone,
+      type: "template",
+      template: {
+        name: "drlab_otp", 
+        language: {
+          code: "en_US", 
+        },
+        components: [
+          {
+            type: "body", 
+            parameters: [
+              {
+                type: "text",
+                text: otpCode, 
+              }
+            ]
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: 0,
+            parameters: [
+              {
+                type: "text",
+                text: "/otp" 
+              }
+            ]
+          }
+        ]
+      },
+    };
+
     const response = await fetch(
       "https://graph.facebook.com/v20.0/142971062224854/messages",
       {
@@ -272,37 +310,27 @@ const sendWhatsAppMessage = async (phone, otp) => {
           Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: `964${phone}`,
-          type: "template",
-          template: {
-            name: "otp_message",
-            language: {
-              code: "ar",
-            },
-            components: [
-              {
-                type: "body",
-                parameters: [
-                  {
-                    type: "text",
-                    text: otp,
-                  }
-                ],
-              }
-            ],
-          },
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
-    return await response.json();
+    const data = await response.json();
+    console.log(data);
+
+    if (data.messages && data.messages[0]?.id) {
+      console.log(`Message sent successfully with ID: ${data.messages[0].id}`);
+      console.log(`OTP ${otpCode} sent to ${phoneStr} via WhatsApp`);
+    } else if (data.error) {
+      console.error("API Error:", data.error);
+    }
+
+    return data;
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
     throw new Error("Failed to send WhatsApp message");
   }
 };
+
 
 router.post("/login", async (req, res) => {
   const { username, password, device } = req.body;
@@ -378,7 +406,7 @@ router.post("/resend-otp", async (req, res) => {
     });
 
     try {
-      const message = `Your verification code for Dr. Lab is: ${otp}`;
+      const message = ` ${otp}`;
       await sendWhatsAppMessage(phone, message);
       console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
     } catch (whatsappError) {

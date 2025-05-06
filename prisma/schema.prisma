@@ -29,18 +29,21 @@ model Client {
   device     String?    @unique
   otp        Int?
   isVerified Boolean?   @default(false)
-  messages   Int?       @default(0)
+  balance    Float      @default(0)
+  whatsappMsgPrice Float? @default(0.05)
   printCount Int?       @default(0)
   invoices   Invoice[]
   whatsapp   Whatsapp[]
   platform   String?
   planId     Int
   Plan       Plan?      @relation(fields: [planId], references: [id])
+  Wallet     Wallet[]
 }
 
 model Plan {
   id            Int       @id @default(autoincrement())
   name          String
+  type          PlanType  @default(FREE)
   price         Int
   whatsappLimit Int?
   printLimit    Int?
@@ -73,9 +76,28 @@ model Whatsapp {
   clientId      Int?
   Client        Client?  @relation(fields: [clientId], references: [id])
 }
+model Wallet {
+  id            Int      @id @default(autoincrement())
+  amount        Int
+  whatsappMsgPrice Float? 
+  createdAt     DateTime @default(now())
+  type          PaymentType @default(BALANCE)
+  clientId      Int 
+  Client        Client?  @relation(fields: [clientId], references: [id])
+}
 
 enum InvoiceType {
   CREATE
   UPDATE
   SUPPORT
+}
+
+enum PlanType {
+  FREE
+  SUBSCRIPTION 
+  PAID 
+}
+
+enum PaymentType {
+  BALANCE
 }

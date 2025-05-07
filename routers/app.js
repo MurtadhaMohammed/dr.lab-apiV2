@@ -289,7 +289,8 @@ router.post("/verify-otp", async (req, res) => {
         address: updatedClient.address, 
         plan:updatedClient.Plan,
         balance: updatedClient.balance,
-        createdAt: updatedClient.createdAt
+        createdAt: updatedClient.createdAt,
+        whatsappMsgPrice: updatedClient.whatsappMsgPrice
       }
     });
   } catch (error) {
@@ -412,7 +413,8 @@ router.post("/login", async (req, res) => {
         address: true,
         isVerified: true,
         createdAt: true,
-        Plan: true
+        Plan: true,
+        whatsappMsgPrice: true
       }
     });
 

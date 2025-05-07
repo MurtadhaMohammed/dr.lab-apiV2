@@ -182,20 +182,6 @@ router.post("/register", async (req, res) => {
         isVerified: false,
         otp: otp,
       },
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        platform: true,
-        phone: true,
-        balance: true,
-        labName: true,
-        email: true,
-        address: true,
-        createdAt: true,
-        isVerified: false,
-        Plan: true
-      }
     });
 
     try {
@@ -271,6 +257,9 @@ router.post("/verify-otp", async (req, res) => {
       data: {
         isVerified: true,
         otp: null, 
+      },
+      include: {
+        Plan: true
       }
     });
 
@@ -287,7 +276,9 @@ router.post("/verify-otp", async (req, res) => {
         labName: updatedClient.labName,
         phone: updatedClient.phone, 
         address: updatedClient.address, 
-        plan:updatedClient.planId
+        plan:updatedClient.Plan,
+        balance: updatedClient.balance,
+        createdAt: updatedClient.createdAt
       }
     });
   } catch (error) {

@@ -287,7 +287,7 @@ router.post("/verify-otp", async (req, res) => {
         labName: updatedClient.labName,
         phone: updatedClient.phone, 
         address: updatedClient.address, 
-        plan:updatedClient.Plan,
+        Plan:updatedClient.Plan,
         balance: updatedClient.balance,
         createdAt: updatedClient.createdAt,
         whatsappMsgPrice: updatedClient.whatsappMsgPrice

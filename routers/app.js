@@ -381,7 +381,7 @@ router.post("/login", async (req, res) => {
     }
 
     if (!client.isVerified) {
-      return res.status(400).json({ error: "Account not verified" });
+      return res.status(400).json({ error: "Account not verified" , phone: client.phone});
     }
 
     const isPasswordValid = await bcrypt.compare(password, client.password);

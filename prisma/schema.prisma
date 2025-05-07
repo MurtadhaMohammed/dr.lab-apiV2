@@ -43,9 +43,8 @@ model Client {
 model Plan {
   id            Int       @id @default(autoincrement())
   name          String
-  type          PlanType  @default(FREE)
+  type          PlanType  @unique 
   price         Int
-  whatsappLimit Int?
   printLimit    Int?
   createdAt     DateTime  @default(now())
   Active        Boolean   @default(true)

@@ -106,31 +106,28 @@ router.post("/register", async (req, res) => {
   const { phone, labName, username, name, email, address, device, platform, password } = req.body;
 
   try {
-    const existingPhone = await prisma.client.findUnique({
-      where: { phone },
-    });
+    const existingPhone = await prisma.client.findUnique({ where: { phone } });
     if (existingPhone) {
       return res.status(400).json({ message: "Phone number already exists" });
     }
 
-    const existingUsername = await prisma.client.findUnique({
-      where: { username },
-    });
+    const existingUsername = await prisma.client.findUnique({ where: { username } });
     if (existingUsername) {
       return res.status(400).json({ message: "Username already exists" });
     }
 
-    const existingDevice = await prisma.client.findUnique({
-      where: { device },
-    });
+    const existingDevice = await prisma.client.findUnique({ where: { device } });
     if (existingDevice) {
       return res.status(400).json({ message: "Device already registered" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
-    
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
+    const plan = await prisma.plan.findUnique({
+      where: { type: "FREE" }
+    });
+
     const newClient = await prisma.client.create({
       data: {
         name,
@@ -142,47 +139,46 @@ router.post("/register", async (req, res) => {
         address,
         device,
         platform,
-        planId:1,
+        planId: plan.id,
         isVerified: false,
         otp: otp,
       },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        platform: true,
+        phone: true,
+        balance: true,
+        labName: true,
+        email: true,
+        address: true,
+        createdAt: true,
+        isVerified: false,
+        Plan: true
+      }
     });
 
     try {
-      const message = `Your verification code for Dr. Lab is: ${otp}`;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const message = ` ${otp}`;
       await sendWhatsAppMessage(phone, message);
       console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
     } catch (whatsappError) {
       console.error('WhatsApp OTP sending failed:', whatsappError);
-      
+
       await prisma.client.delete({
         where: { id: newClient.id }
       });
-      
+
       return res.status(500).json({ error: "Failed to send OTP via WhatsApp" });
     }
 
-    setTimeout(async () => {
-      try {
-        const client = await prisma.client.findUnique({
-          where: { id: newClient.id }
-        });
-        
-        if (client && !client.isVerified) {
-          console.log(`Deleting unverified client ${newClient.id} after 30 minutes timeout`);
-          await prisma.client.delete({
-            where: { id: newClient.id }
-          });
-        }
-      } catch (err) {
-        console.error('Error in scheduled client deletion:', err);
-      }
-    }, 30 * 60 * 1000); 
-
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: "OTP sent successfully",
-      userId: newClient.id 
+      client: newClient
     });
   } catch (error) {
     console.error("Error during registration:", error);
@@ -262,6 +258,7 @@ router.post("/verify-otp", async (req, res) => {
 });
 
 const sendWhatsAppMessage = async (phone, otpCode) => {
+
   try {
     const phoneStr = String(phone);
     const formattedPhone = phoneStr.startsWith('0')
@@ -354,6 +351,12 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Invalid password" });
     }
 
+    if (client.device) {
+      return res.status(400).json({
+        error: "This account is already logged in from another device. Please log out from the existing device first.",
+      });
+    }
+
     const token = generateToken(client);
 
     const clientInfo = await prisma.client.findUnique({
@@ -364,13 +367,22 @@ router.post("/login", async (req, res) => {
         name: true,
         platform: true,
         phone: true,
+        balance: true,
         labName: true,
         email: true,
         address: true,
+        isVerified: true,
         createdAt: true,
         Plan: true
       }
     });
+
+    if (!client.device) {
+      await prisma.client.update({
+        where: { id: client.id },
+        data: { device },
+      });
+    }
 
     res.status(200).json({ success: true, token, client: clientInfo });
   } catch (error) {

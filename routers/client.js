@@ -44,6 +44,7 @@ router.get("/all", adminAuth, async (req, res) => {
         active: true,
         device: true,
         Plan: true,
+        balance: true,
         createdAt: true
       }
     });

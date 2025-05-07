@@ -173,6 +173,44 @@ router.post("/whatsapp-message", async (req, res) => {
   }
 });
 
+// async function getWhatsappCount(clientId) {
+//   if (!clientId) {
+//     throw new Error("Invalid client ID");
+//   }
+
+//   const client = await prisma.client.findUnique({
+//     where: { id: clientId },
+//     include: {
+//       Plan: true,
+//     }
+//   });
+
+//   if (!client) {
+//     throw new Error("Client not found");
+//   }
+
+//   const now = dayjs();
+//   const startOfMonth = now.startOf('month').toDate();
+//   const endOfMonth = now.endOf('month').toDate();
+
+//   const count = await prisma.whatsapp.count({
+//     where: {
+//       clientId: clientId,
+//       createdAt: {
+//         gte: startOfMonth,
+//         lte: endOfMonth,
+//       },
+//     },
+//   });
+
+//   await prisma.client.update({
+//     where: { id: clientId },
+//     data: { messages: count },
+//   });
+
+//   return count;
+// }
+
 async function getWhatsappCount(clientId) {
   if (!clientId) {
     throw new Error("Invalid client ID");
@@ -180,43 +218,34 @@ async function getWhatsappCount(clientId) {
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    include: {
-      Plan: true,
-    }
+    select: {
+      balance: true,
+      whatsappMsgPrice: true,
+    },
   });
 
   if (!client) {
     throw new Error("Client not found");
   }
 
-  const now = dayjs();
-  const startOfMonth = now.startOf('month').toDate();
-  const endOfMonth = now.endOf('month').toDate();
+  const messagePrice = client.whatsappMsgPrice ?? 0.05;
 
-  const count = await prisma.whatsapp.count({
-    where: {
-      clientId: clientId,
-      createdAt: {
-        gte: startOfMonth,
-        lte: endOfMonth,
-      },
-    },
-  });
+  if (messagePrice <= 0) {
+    throw new Error("Invalid message price");
+  }
 
-  await prisma.client.update({
-    where: { id: clientId },
-    data: { messages: count },
-  });
+  const availableMessages = Math.floor(client.balance / messagePrice);
 
-  return count;
+  return availableMessages;
 }
+
 
 router.get("/whatsapp-count/:clientId", async (req, res) => {
   const clientId = parseInt(req.params.clientId);
 
   try {
     const count = await getWhatsappCount(clientId);
-    res.status(200).json({ clientId, count });
+    res.status(200).json({ count });
   } catch (error) {
     if (error.message === "Invalid client ID") {
       res.status(400).json({ error: error.message });

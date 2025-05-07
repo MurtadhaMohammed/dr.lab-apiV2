@@ -58,17 +58,17 @@ router.get("/all", adminAuth, async (req, res) => {
 
 router.post("/", adminAuth, async (req, res) => {
   try {
-    const { name, username, password, labName, phone, email, address, device, planId } = req.body;
+    const { name, username, password, labName, phone, email, address, device, type } = req.body;
 
-    if (!name || !username || !password || !phone || !planId) {
+    if (!name || !username || !password || !phone || !type) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     const plan = await prisma.plan.findUnique({
-      where: { id: parseInt(planId) }
+      where: { type: type }
     });
     if (!plan) {
-      return res.status(400).json({ error: "Invalid plan ID" });
+      return res.status(400).json({ error: "Invalid plan type" });
     }
 
     const existingUsername = await prisma.client.findUnique({
@@ -106,7 +106,8 @@ router.post("/", adminAuth, async (req, res) => {
         email,
         address,
         device,
-        planId: parseInt(planId)},
+        planId: plan.id,
+      },
     });
     
     res.status(200).json({ "success": true ,message:"client created successfully"});

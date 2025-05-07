@@ -109,7 +109,7 @@ router.post("/", adminAuth, async (req, res) => {
         planId: parseInt(planId)},
     });
     
-    res.status(200).json({message:"client created successfully"});
+    res.status(200).json({ "success": true ,message:"client created successfully"});
   } catch (error) {
     console.error("Error creating client:", error);
     if (error.code === 'P2002') {
@@ -122,7 +122,9 @@ router.post("/", adminAuth, async (req, res) => {
 router.put("/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, labName, phone, email, address, device, planId, active } = req.body;
+    const { name, labName, phone, email, address, device, type, active } = req.body;
+
+    console.log("req.body",req.body);
 
     const existingClient = await prisma.client.findUnique({
       where: { id: parseInt(id) }
@@ -131,12 +133,14 @@ router.put("/:id", adminAuth, async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    if (planId) {
-      const plan = await prisma.plan.findUnique({
-        where: { id: parseInt(planId) }
+    let plan = null; 
+
+    if (type) {
+      plan = await prisma.plan.findUnique({
+        where: { type }
       });
       if (!plan) {
-        return res.status(400).json({ error: "Invalid plan ID" });
+        return res.status(400).json({ error: "Invalid plan type" });
       }
     }
 
@@ -167,12 +171,14 @@ router.put("/:id", adminAuth, async (req, res) => {
         email,
         address,
         device,
-        planId: planId ? parseInt(planId) : undefined,
+        planId: type ? plan.id : existingClient.planId,
         active
       },
     });
 
-    res.status(200).json({message : "client updated !"});
+    console.log(updatedClient);
+
+    res.status(200).json({ message: "Client updated!" });
   } catch (error) {
     console.error("Error updating client:", error);
     if (error.code === 'P2002') {
@@ -181,6 +187,62 @@ router.put("/:id", adminAuth, async (req, res) => {
     res.status(500).json({ error: "Could not update client" });
   }
 });
+
+router.put("/add-balance/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const amount = parseFloat(req.body.balance);
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: "Amount must be a positive number" });
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        Plan: true
+      }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    if (client.Plan.type === "FREE") {
+      return res.status(400).json({ error: "Free Plan clients cannot receive balance" });
+    }
+
+    const [updatedClient, newWallet] = await prisma.$transaction([
+      prisma.client.update({
+        where: { id: parseInt(id) },
+        data: {
+          balance: {
+            increment: amount
+          }
+        }
+      }),
+      prisma.wallet.create({
+        data: {
+          clientId: parseInt(id),
+          amount: amount,
+          type: "BALANCE", 
+          whatsappMsgPrice: client.whatsappMsgPrice ?? 0.05,
+          createdAt: new Date()
+        }
+      })
+    ]);
+
+    res.status(200).json({
+      message: "Balance added and wallet entry created",
+      balance: updatedClient.balance
+    });
+  } catch (error) {
+    console.error("Error adding balance:", error);
+    res.status(500).json({ error: "Could not update balance" });
+  }
+});
+
+
 
 router.put("/reset-password/:id", adminAuth, async (req, res) => {
   try {

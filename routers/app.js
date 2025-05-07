@@ -212,6 +212,7 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/verify-otp", async (req, res) => {
+
   try {
     const { otp, phone } = req.body;
     const MASTER_OTP = "000000"; 
@@ -252,16 +253,26 @@ router.post("/verify-otp", async (req, res) => {
       }
     }
 
-    const updatedClient = await prisma.client.update({
-      where: { id: client.id },
-      data: {
-        isVerified: true,
-        otp: null, 
-      },
-      include: {
-        Plan: true
-      }
-    });
+    const [updatedClient] = await prisma.$transaction([
+      prisma.client.update({
+        where: { id: client.id },
+        data: {
+          isVerified: true,
+          otp: null,
+        },
+        include: {
+          Plan: true,
+        },
+      }),
+      prisma.invoice.create({
+        data: {
+          clientId: client.id,
+          planId: client.planId,
+          price: client.Plan?.price || 0,
+          type: "CREATE",
+        },
+      }),
+    ]);
 
     const token = generateToken(updatedClient);
 

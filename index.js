@@ -11,6 +11,8 @@ const clientRouter = require("./routers/client");
 const planRouter = require("./routers/plan");
 const invoiceRouter = require("./routers/invoice");
 const whatsappRouter = require("./routers/whatsapp");
+const walletRouter = require("./routers/wallet");
+
 // const dashboardRouter = require("./routers/dashboard")
 const appRouter = require("./routers/app");
 
@@ -40,6 +42,7 @@ app.use("/api/plan", planRouter);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/whatsapp", whatsappRouter);
 app.use("/api/app", appRouter);
+app.use("/api/wallet", walletRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

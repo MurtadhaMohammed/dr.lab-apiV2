@@ -51,7 +51,7 @@ router.put("/update-client", clientAuth, async (req, res) => {
   }
 });
 
-router.post("/check-user", async (req, res) => {
+router.post("/check-user", clientAuth, async (req, res) => {
   const { phone, labName, username, name, email, address, device, platform, password } = req.body;
 
   try {
@@ -99,6 +99,45 @@ router.post("/check-user", async (req, res) => {
   } catch (error) {
     console.error("Error registering client:", error);
     res.status(500).json({ error: "Could not register client" });
+  }
+});
+
+router.post("/print", clientAuth, async (req, res) => {
+  try {
+    const clientId = req.user.id; 
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        Plan: true
+      }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    if (client.Plan.type === "FREE") {
+      if (client.printCount >= 20) {
+        return res.status(403).json({ error: "Print limit exceeded for FREE plan" });
+      }
+
+      await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          printCount: {
+            increment: 1
+          }
+        }
+      });
+
+      return res.status(200).json({ message: "Print allowed and count updated" });
+    }
+
+    return res.status(200).json({ message: "Print allowed for non-free plan" });
+  } catch (error) {
+    console.error("Print error:", error);
+    return res.status(500).json({ error: "Failed to process print" });
   }
 });
 
@@ -312,8 +351,7 @@ const sendWhatsAppMessage = async (phone, otpCode) => {
     );
 
     const data = await response.json();
-    console.log(data);
-
+    
     if (data.messages && data.messages[0]?.id) {
       console.log(`Message sent successfully with ID: ${data.messages[0].id}`);
       console.log(`OTP ${otpCode} sent to ${phoneStr} via WhatsApp`);
@@ -327,7 +365,6 @@ const sendWhatsAppMessage = async (phone, otpCode) => {
     throw new Error("Failed to send WhatsApp message");
   }
 };
-
 
 router.post("/login", async (req, res) => {
   const { username, password, device } = req.body;
@@ -439,7 +476,6 @@ router.post("/resend-otp", async (req, res) => {
 router.post("/logout" , async (req, res) => {
   try {
 
-    console.log(req.body)
     const { username } = req.body;
 
     const existingClient = await prisma.client.findFirst({

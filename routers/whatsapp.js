@@ -275,7 +275,6 @@ router.post("/whatsapp-message", async (req, res) => {
 
   let url = await uploadToLinode(req.files);
 
-  console.log(phone, name, lab, url);
   if (!url) res.status(500).json({ massege: "Uploading Error!" });
 
   try {

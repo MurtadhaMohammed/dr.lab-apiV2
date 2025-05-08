@@ -1,5 +1,6 @@
 const express = require("express");
 const adminAuth = require("../middleware/adminAuth");
+const clientAuth = require("../middleware/clientAuth");
 const prisma = require("../prisma/prismaClient");
 const dayjs = require("dayjs");
 const shortid = require("shortid");
@@ -59,7 +60,7 @@ const uploadToLinode = async (files, phone) => {
   }
 };
 
-router.get("/whatsapp", async (req, res) => {
+router.get("/whatsapp", adminAuth, async (req, res) => {
   try {
     const whatsapp = await prisma.whatsapp.findMany();
     res.status(200).json(whatsapp);
@@ -69,107 +70,109 @@ router.get("/whatsapp", async (req, res) => {
   }
 });
 
-router.post("/whatsapp-message", async (req, res) => {
-  const { clientId, phone, name, lab, senderPhone } = req.body;
+router.post("/whatsapp-message"  , async (req, res) => {
+
+  console.log(req.headers);
+
+  const { clientId, phone, name, lab } = req.body;
 
   const client = await prisma.client.findUnique({
     where: { id: parseInt(clientId) },
+    include: { Plan: true }
   });
 
-  if (!client) {
-    return res.status(404).json({ error: "Client not found" });
-  }
+  if (!client) return res.status(404).json({ error: "Client not found" });
+
+  const senderPhone = client.whatsappPhone;
+  const whatsappPhoneId = senderPhone ? client.whatsappPhoneId || 142971062224854 : 142971062224854;
+
+  const pricePerMsg = client.whatsappMsgPrice || 0.05;
+  const clientBalance = client.balance || 0;
+
   const limits = {
-    basic: 50,
-    premium: 1000,
+    FREE: 0,
+    SUBSCRIPTION: clientBalance / pricePerMsg,
+    PAID: clientBalance / pricePerMsg,
   };
 
+  const planType = client.Plan?.type || "UNKNOWN";
+  const messageLimit = limits[planType] || 0;
+
   const count = await getWhatsappCount(parseInt(clientId));
-
-  const messageLimit = limits[client.type];
-
   if (count >= messageLimit) {
-    return res.status(403).json({ error: "Message limit exceeded the plan" });
+    return res.status(403).json({ error: "Message limit exceeded for the plan" });
   }
 
   try {
     const url = await uploadToLinode(req.files, phone);
-    if (!url) {
-      return res.status(500).json({ message: "Uploading Error!" });
-    }
+    if (!url) return res.status(500).json({ message: "Uploading Error!" });
 
-    const whatsapp = await prisma.whatsapp.create({
-      data: {
-        name,
-        labName: lab,
-        receiverPhone: phone,
-        senderPhone,
-        clientId: parseInt(clientId),
-        fileName: url,
-        createdAt: dayjs().toISOString(),
+    const payload = {
+      messaging_product: "whatsapp",
+      to: `964${phone}`,
+      type: "template",
+      template: {
+        name: "lab",
+        language: { code: "ar" },
+        components: [
+          { type: "header", parameters: [{ type: "text", text: name }] },
+          { type: "body", parameters: [{ type: "text", text: lab }] },
+          {
+            type: "button",
+            sub_type: "url",
+            index: "0",
+            parameters: [{ type: "text", text: url }],
+          },
+        ],
       },
-    });
-    console.log(process.env.WHATSAPP_TOKEN,"tokeeeeeeeeeeeeeeeeeen");
+    };
+
     const response = await fetch(
-      "https://graph.facebook.com/v20.0/142971062224854/messages",
+      `https://graph.facebook.com/v20.0/${whatsappPhoneId}/messages`,
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: `964${phone}`,
-          type: "template",
-          template: {
-            name: "lab",
-            language: {
-              code: "ar",
-            },
-            components: [
-              {
-                type: "header",
-                parameters: [
-                  {
-                    type: "text",
-                    text: name,
-                  },
-                ],
-              },
-              {
-                type: "body",
-                parameters: [
-                  {
-                    type: "text",
-                    text: lab,
-                  },
-                ],
-              },
-              {
-                type: "button",
-                sub_type: "url",
-                index: "0",
-                parameters: [
-                  {
-                    type: "text",
-                    text: url,
-                  },
-                ],
-              },
-            ],
-          },
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
-    const resp = await response.json({ whatsapp });
-    res.status(200).json({ message: "Message sent successfully", resp });
+    const resp = await response.json();
+
+    if (!resp.messages || !resp.messages[0]?.id) {
+      return res.status(500).json({ error: "Failed to send WhatsApp message", details: resp });
+    }
+
+    const [whatsapp] = await prisma.$transaction([
+      prisma.whatsapp.create({
+        data: {
+          name,
+          labName: lab,
+          receiverPhone: phone,
+          senderPhone: senderPhone,
+          senderPhoneId: whatsappPhoneId,
+          clientId: parseInt(clientId),
+          fileName: url,
+          createdAt: new Date(),
+        },
+      }),
+      prisma.client.update({
+        where: { id: parseInt(clientId) },
+        data: {
+          balance: {
+            decrement: pricePerMsg,
+          },
+        },
+      }),
+    ]);
+
+    res.status(200).json({ message: "Message sent successfully", whatsapp, resp });
+
   } catch (error) {
-    console.error("Error:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while sending the message" });
+    console.error("Error sending WhatsApp message:", error);
+    res.status(500).json({ error: "An error occurred while sending the message" });
   }
 });
 
@@ -240,7 +243,7 @@ async function getWhatsappCount(clientId) {
 }
 
 
-router.get("/whatsapp-count/:clientId", async (req, res) => {
+router.get("/whatsapp-count/:clientId", clientAuth, async (req, res) => {
   const clientId = parseInt(req.params.clientId);
 
   try {
@@ -260,86 +263,86 @@ router.get("/whatsapp-count/:clientId", async (req, res) => {
   }
 });
 
-router.get("/whatsapp-messages", async (req, res) => {
-  try {
-    const messages = await prisma.whatsapp.findMany();
-    res.json(messages);
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    res.status(500).json({ error: "Could not fetch messages" });
-  }
-});
+// router.get("/whatsapp-messages", async (req, res) => {
+//   try {
+//     const messages = await prisma.whatsapp.findMany();
+//     res.json(messages);
+//   } catch (error) {
+//     console.error("Error fetching messages:", error);
+//     res.status(500).json({ error: "Could not fetch messages" });
+//   }
+// });
 
-router.post("/whatsapp-message", async (req, res) => {
-  const { phone, name, lab } = req.body; 
+// router.post("/whatsapp-message", async (req, res) => {
+//   const { phone, name, lab } = req.body; 
 
-  let url = await uploadToLinode(req.files);
+//   let url = await uploadToLinode(req.files);
 
-  if (!url) res.status(500).json({ massege: "Uploading Error!" });
+//   if (!url) res.status(500).json({ massege: "Uploading Error!" });
 
-  try {
-    res.status(200).json({ url });
-    const response = await fetch(
-      "https://graph.facebook.com/v20.0/142971062224854/messages",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: `964${phone}`,
-          type: "template",
-          template: {
-            name: "lab",
-            language: {
-              code: "ar",
-            },
-            components: [
-              {
-                type: "header", 
-                parameters: [
-                  {
-                    type: "text",
-                    text: name, 
-                  },
-                ],
-              },
-              {
-                type: "body",
-                parameters: [
-                  {
-                    type: "text",
-                    text: lab,
-                  },
-                ],
-              },
-              {
-                type: "button",
-                sub_type: "url", 
-                index: "0", 
-                parameters: [
-                  {
-                    type: "text",
-                    text: url, 
-                  },
-                ],
-              },
-            ],
-          },
-        }),
-      }
-    );
+//   try {
+//     res.status(200).json({ url });
+//     const response = await fetch(
+//       "https://graph.facebook.com/v20.0/142971062224854/messages",
+//       {
+//         method: "POST",
+//         headers: {
+//           Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify({
+//           messaging_product: "whatsapp",
+//           to: `964${phone}`,
+//           type: "template",
+//           template: {
+//             name: "lab",
+//             language: {
+//               code: "ar",
+//             },
+//             components: [
+//               {
+//                 type: "header", 
+//                 parameters: [
+//                   {
+//                     type: "text",
+//                     text: name, 
+//                   },
+//                 ],
+//               },
+//               {
+//                 type: "body",
+//                 parameters: [
+//                   {
+//                     type: "text",
+//                     text: lab,
+//                   },
+//                 ],
+//               },
+//               {
+//                 type: "button",
+//                 sub_type: "url", 
+//                 index: "0", 
+//                 parameters: [
+//                   {
+//                     type: "text",
+//                     text: url, 
+//                   },
+//                 ],
+//               },
+//             ],
+//           },
+//         }),
+//       }
+//     );
 
-    const data = await response.json();
-    res.status(200).json(data); 
-  } catch (error) {
-    console.error("Error:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while sending the message" });
-  }
-});
+//     const data = await response.json();
+//     res.status(200).json(data); 
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res
+//       .status(500)
+//       .json({ error: "An error occurred while sending the message" });
+//   }
+// });
 
 module.exports = router;

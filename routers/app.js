@@ -102,6 +102,59 @@ router.post("/check-user", clientAuth, async (req, res) => {
   }
 });
 
+router.get("/check", clientAuth, async (req, res) => {
+  try {
+
+    const clientId = req.user.id;
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        Plan: true,
+      },
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+
+    if (client.Plan.type === "FREE") {
+      if (client.printCount >= 20) {
+        return res
+          .status(403)
+          .json({ error: "Print limit exceeded for FREE plan" });
+      }
+    } else if (client.Plan.type === "SUBSCRIPTION") {
+      const latestInvoice = await prisma.invoice.findFirst({
+        where: { planId: client.Plan.id },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!latestInvoice) {
+        return res
+          .status(403)
+          .json({ error: "No invoice found for this plan" });
+      }
+
+      const createdAt = new Date(latestInvoice.createdAt);
+      const now = new Date();
+      const diffInDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+
+      if (diffInDays > 30) {
+        return res
+          .status(403)
+          .json({ error: "Plan validity expired after 30 days" });
+      }
+    }
+
+    res.status(200).json({ success: true, message: "Client plan is valid" });
+  } catch (error) {
+    console.error("Error checking client plan:", error);
+    res.status(500).json({ error: "Failed to verify client plan" });
+  }
+});
+
 router.post("/print", clientAuth, async (req, res) => {
   try {
     const clientId = req.user.id; 

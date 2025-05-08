@@ -31,6 +31,8 @@ model Client {
   isVerified Boolean?   @default(false)
   balance    Float      @default(0)
   whatsappMsgPrice Float? @default(0.05)
+  whatsappPhone String? 
+  whatsappPhoneId String?
   printCount Int?       @default(0)
   invoices   Invoice[]
   whatsapp   Whatsapp[]
@@ -72,6 +74,7 @@ model Whatsapp {
   messageId     Int?
   receiverPhone String
   senderPhone   String
+  senderPhoneId String?
   clientId      Int?
   Client        Client?  @relation(fields: [clientId], references: [id])
 }

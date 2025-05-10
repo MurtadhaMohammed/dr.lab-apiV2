@@ -3,6 +3,7 @@ const adminAuth = require("../middleware/adminAuth");
 const prisma = require("../prisma/prismaClient");
 const dayjs = require("dayjs");
 const shortid = require("shortid");
+const clientAuth = require("../middleware/clientAuth");
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 // const AWS = require("aws-sdk");
@@ -69,8 +70,9 @@ router.get("/whatsapp", async (req, res) => {
   }
 });
 
-router.post("/whatsapp-message", async (req, res) => {
-  const { clientId, phone, name, lab } = req.body;
+router.post("/whatsapp-message", clientAuth, async (req, res) => {
+  const { phone, name } = req.body;
+  const clientId = req.user.id;
 
   const client = await prisma.client.findUnique({
     where: { id: parseInt(clientId) },
@@ -119,7 +121,7 @@ router.post("/whatsapp-message", async (req, res) => {
                 parameters: [
                   {
                     type: "text",
-                    text: lab,
+                    text: client?.labName,
                   },
                 ],
               },
@@ -146,7 +148,7 @@ router.post("/whatsapp-message", async (req, res) => {
       await prisma.whatsapp.create({
         data: {
           name,
-          labName: lab,
+          labName: client?.labName,
           receiverPhone: phone,
           senderPhone: "142971062224854",
           clientId: parseInt(clientId),
@@ -154,6 +156,16 @@ router.post("/whatsapp-message", async (req, res) => {
           createdAt: dayjs().toISOString(),
         },
       });
+
+      await prisma.client.update({
+        where: { id: parseInt(clientId) },
+        data: {
+          balance: {
+            decrement: client?.whatsappMsgPrice,
+          },
+        },
+      });
+
       res.status(200).json({ message: "Message sent successfully" });
     } else {
       res.status(500).json({ error: "Somthing Warng!" });

@@ -11,15 +11,15 @@ const authMiddleware = (req, res, next) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    console.log("Access denied. No token provided."); 
+    console.log("Access denied. No token provided.");
     return res.status(401).json({ error: "Access denied. No token provided." });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded.id || !decoded.username ) {
-      console.log("Invalid token payload."); 
+    if (!decoded.id || !decoded.phone) {
+      console.log("Invalid token payload.");
       return res.status(400).json({ error: "Invalid token payload." });
     }
 

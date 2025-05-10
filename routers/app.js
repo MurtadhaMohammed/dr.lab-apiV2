@@ -9,35 +9,18 @@ const { otpLimiter } = require("../middleware/rateLimit");
 
 router.put("/update-client", clientAuth, async (req, res) => {
   try {
-    const { device, labName, name, phone, email, address } = req.body;
+    const { device, labName, name, email, address } = req.body;
+    const clientId = req.user.id;
 
-    if (!device && !phone) {
-      return res.status(400).json({
-        error: "Device ID or phone number is required to update a client",
-      });
-    }
-
-    let client = await prisma.client.findFirst({
-      where: { device: device },
+    let client = await prisma.client.findUnique({
+      where: { id: parseInt(clientId), device },
     });
-
-    if (phone && phone !== client.phone) {
-      const existingPhoneClient = await prisma.client.findFirst({
-        where: { phone },
-      });
-      if (existingPhoneClient) {
-        return res
-          .status(400)
-          .json({ error: "Phone number already in use by another client" });
-      }
-    }
 
     const updatedClient = await prisma.client.update({
       where: { id: client.id },
       data: {
         name: name || client.name,
         labName: labName || client.labName,
-        phone: phone || client.phone,
         email: email || client.email,
         address: address || client.address,
       },
@@ -184,7 +167,7 @@ router.post("/resend-otp", otpLimiter, async (req, res) => {
 
     try {
       await sendOtp(phone, otp);
-      console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
+      // console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
     } catch (whatsappError) {
       console.error("WhatsApp OTP sending failed:", whatsappError);
       return res.status(500).json({ error: "Failed to send OTP via WhatsApp" });

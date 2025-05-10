@@ -54,7 +54,7 @@ const sendOtp = async (phone, otpCode) => {
     const data = await response.json();
 
     if (data.messages && data.messages[0]?.id) {
-      console.log(`Message sent successfully with ID: ${data.messages[0].id}`);
+      // console.log(`Message sent successfully with ID: ${data.messages[0].id}`);
     } else if (data.error) {
       console.error("API Error:", data.error);
     }

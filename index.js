@@ -19,6 +19,7 @@ const fileUpload = require("express-fileupload");
 
 require("dotenv").config();
 
+app.set('trust proxy', true);
 app.use(
   fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },

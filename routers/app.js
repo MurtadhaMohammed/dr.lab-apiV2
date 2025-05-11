@@ -4,7 +4,7 @@ const dayjs = require("dayjs");
 const generateToken = require("../helper/generateToken");
 const router = express.Router();
 const prisma = require("../prisma/prismaClient");
-const { sendOtp } = require("../helper/sendWhatsapp");
+const { sendOtp, sendFileMsg } = require("../helper/sendWhatsapp");
 const { otpLimiter } = require("../middleware/rateLimit");
 
 router.put("/update-client", clientAuth, async (req, res) => {
@@ -269,6 +269,50 @@ router.post("/login", otpLimiter, async (req, res) => {
     console.error("Error logging in:", error);
     res.status(500).json({ error: "Could not log in" });
   }
+});
+
+router.post("/whatsapp-message", clientAuth, async (req, res) => {
+  const { phone, name } = req.body;
+  const clientId = req.user.id;
+  const client = await prisma.client.findUnique({
+    where: { id: parseInt(clientId) },
+  });
+
+  if (!client) {
+    return res.status(404).json({ error: "Client not found" });
+  }
+
+  if (client?.balance < client?.whatsappMsgPrice) {
+    return res.status(500).json({ error: "Your Balance not enough!." });
+  }
+
+  const result = await sendFileMsg(phone, name, client?.labName, req.files);
+  if (!result?.success) {
+    return res.status(500).json(result?.error);
+  }
+
+  await prisma.whatsapp.create({
+    data: {
+      name,
+      labName: client?.labName,
+      receiverPhone: phone,
+      senderPhone: result?.senderId,
+      clientId: parseInt(clientId),
+      fileName: result?.url,
+      createdAt: dayjs().toISOString(),
+    },
+  });
+
+  await prisma.client.update({
+    where: { id: parseInt(clientId) },
+    data: {
+      balance: {
+        decrement: client?.whatsappMsgPrice,
+      },
+    },
+  });
+
+  res.status(200).json({ message: result?.message });
 });
 
 module.exports = router;

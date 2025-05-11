@@ -1,3 +1,5 @@
+const { uploadToLinode } = require("./uploadToLinode");
+
 const sendOtp = async (phone, otpCode) => {
   try {
     const phoneStr = String(phone);
@@ -66,4 +68,83 @@ const sendOtp = async (phone, otpCode) => {
   }
 };
 
-module.exports = { sendOtp };
+const sendFileMsg = async (phone, name, labName, file) => {
+  try {
+    const url = await uploadToLinode(file, phone);
+    const senderId = "142971062224854";
+
+    if (!url) return { success: false, error: "Uploading Error!" };
+
+    const response = await fetch(
+      `https://graph.facebook.com/v20.0/${senderId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: `964${phone}`,
+          type: "template",
+          template: {
+            name: "lab",
+            language: {
+              code: "ar",
+            },
+            components: [
+              {
+                type: "header",
+                parameters: [
+                  {
+                    type: "text",
+                    text: name,
+                  },
+                ],
+              },
+              {
+                type: "body",
+                parameters: [
+                  {
+                    type: "text",
+                    text: labName,
+                  },
+                ],
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [
+                  {
+                    type: "text",
+                    text: url,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data?.messages[0]?.message_status === "accepted")
+      return {
+        success: true,
+        url,
+        senderId,
+        message: "Message sent successfully",
+      };
+    else return { success: false, error: "Somthing Warng!" };
+  } catch (error) {
+    console.error("Error:", error);
+    return {
+      success: false,
+      error: "An error occurred while sending the message",
+    };
+  }
+};
+
+module.exports = { sendOtp, sendFileMsg };

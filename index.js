@@ -10,7 +10,6 @@ const adminRouter = require("./routers/admin");
 const clientRouter = require("./routers/client");
 const planRouter = require("./routers/plan");
 const invoiceRouter = require("./routers/invoice");
-const whatsappRouter = require("./routers/whatsapp");
 const walletRouter = require("./routers/wallet");
 
 // const dashboardRouter = require("./routers/dashboard")
@@ -40,7 +39,6 @@ app.use("/api/client", clientRouter);
 // app.use("/api/dashboard", dashboardRouter);
 app.use("/api/plan", planRouter);
 app.use("/api/invoice", invoiceRouter);
-app.use("/api/whatsapp", whatsappRouter);
 app.use("/api/app", appRouter);
 app.use("/api/wallet", walletRouter);
 

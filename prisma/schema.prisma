@@ -26,21 +26,21 @@ model Client {
   address          String?
   active           Boolean    @default(true)
   createdAt        DateTime   @default(now())
-  expiredAt        DateTime?
   device           String?    @unique
   otp              Int?
-  otpCount         Int?       @default(0)
-  otpCreatedAt     DateTime?
   isVerified       Boolean?   @default(false)
   balance          Float      @default(0)
   whatsappMsgPrice Float?     @default(0.05)
   printCount       Int?       @default(0)
-  invoices         Invoice[]
-  whatsapp         Whatsapp[]
   platform         String?
   planId           Int
-  Plan             Plan?      @relation(fields: [planId], references: [id])
+  expiredAt        DateTime?
+  otpCreatedAt     DateTime?
+  otpCount         Int?       @default(0)
+  Plan             Plan       @relation(fields: [planId], references: [id])
+  invoices         Invoice[]
   Wallet           Wallet[]
+  whatsapp         Whatsapp[]
 }
 
 model Plan {
@@ -63,7 +63,7 @@ model Invoice {
   clientId  Int?
   createdAt DateTime    @default(now())
   client    Client?     @relation(fields: [clientId], references: [id])
-  Plan      Plan?       @relation(fields: [planId], references: [id])
+  Plan      Plan        @relation(fields: [planId], references: [id])
 }
 
 model Whatsapp {
@@ -75,7 +75,6 @@ model Whatsapp {
   messageId     Int?
   receiverPhone String
   senderPhone   String
-  senderPhoneId String?
   clientId      Int?
   Client        Client?  @relation(fields: [clientId], references: [id])
 }
@@ -87,7 +86,7 @@ model Wallet {
   createdAt        DateTime    @default(now())
   type             PaymentType @default(BALANCE)
   clientId         Int
-  Client           Client?     @relation(fields: [clientId], references: [id])
+  Client           Client      @relation(fields: [clientId], references: [id])
 }
 
 enum InvoiceType {

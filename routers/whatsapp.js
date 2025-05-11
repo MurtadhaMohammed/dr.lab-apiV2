@@ -4,7 +4,6 @@ const clientAuth = require("../middleware/clientAuth");
 const prisma = require("../prisma/prismaClient");
 const dayjs = require("dayjs");
 const shortid = require("shortid");
-const clientAuth = require("../middleware/clientAuth");
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 // const AWS = require("aws-sdk");

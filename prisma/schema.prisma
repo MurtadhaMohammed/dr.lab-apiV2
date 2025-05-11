@@ -16,42 +16,43 @@ model Admin {
 }
 
 model Client {
-  id         Int        @id @default(autoincrement())
-  name       String
-  password   String
-  username   String     @unique
-  labName    String?
-  phone      String     @unique
-  email      String?
-  address    String?
-  active     Boolean    @default(true)
-  createdAt  DateTime   @default(now())
-  device     String?    @unique
-  otp        Int?
-  isVerified Boolean?   @default(false)
-  balance    Float      @default(0)
-  whatsappMsgPrice Float? @default(0.05)
-  whatsappPhone String? 
-  whatsappPhoneId String?
-  printCount Int?       @default(0)
-  invoices   Invoice[]
-  whatsapp   Whatsapp[]
-  platform   String?
-  planId     Int
-  Plan       Plan?      @relation(fields: [planId], references: [id])
-  Wallet     Wallet[]
+  id               Int        @id @default(autoincrement())
+  name             String
+  password         String?
+  username         String?    @unique
+  labName          String?
+  phone            String     @unique
+  email            String?
+  address          String?
+  active           Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  expiredAt        DateTime?
+  device           String?    @unique
+  otp              Int?
+  otpCount         Int?       @default(0)
+  otpCreatedAt     DateTime?
+  isVerified       Boolean?   @default(false)
+  balance          Float      @default(0)
+  whatsappMsgPrice Float?     @default(0.05)
+  printCount       Int?       @default(0)
+  invoices         Invoice[]
+  whatsapp         Whatsapp[]
+  platform         String?
+  planId           Int
+  Plan             Plan?      @relation(fields: [planId], references: [id])
+  Wallet           Wallet[]
 }
 
 model Plan {
-  id            Int       @id @default(autoincrement())
-  name          String
-  type          PlanType  @unique 
-  price         Int
-  printLimit    Int?
-  createdAt     DateTime  @default(now())
-  Active        Boolean   @default(true)
-  clients       Client[]
-  invoices      Invoice[]
+  id         Int       @id @default(autoincrement())
+  name       String
+  type       PlanType  @unique
+  price      Int
+  printLimit Int?
+  createdAt  DateTime  @default(now())
+  Active     Boolean   @default(true)
+  clients    Client[]
+  invoices   Invoice[]
 }
 
 model Invoice {
@@ -78,14 +79,15 @@ model Whatsapp {
   clientId      Int?
   Client        Client?  @relation(fields: [clientId], references: [id])
 }
+
 model Wallet {
-  id            Int      @id @default(autoincrement())
-  amount        Int
-  whatsappMsgPrice Float? 
-  createdAt     DateTime @default(now())
-  type          PaymentType @default(BALANCE)
-  clientId      Int 
-  Client        Client?  @relation(fields: [clientId], references: [id])
+  id               Int         @id @default(autoincrement())
+  amount           Int
+  whatsappMsgPrice Float?
+  createdAt        DateTime    @default(now())
+  type             PaymentType @default(BALANCE)
+  clientId         Int
+  Client           Client?     @relation(fields: [clientId], references: [id])
 }
 
 enum InvoiceType {
@@ -96,8 +98,8 @@ enum InvoiceType {
 
 enum PlanType {
   FREE
-  SUBSCRIPTION 
-  PAID 
+  SUBSCRIPTION
+  PAID
 }
 
 enum PaymentType {

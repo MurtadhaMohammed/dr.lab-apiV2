@@ -4,6 +4,7 @@ const clientAuth = require("../middleware/clientAuth");
 const prisma = require("../prisma/prismaClient");
 const dayjs = require("dayjs");
 const shortid = require("shortid");
+const clientAuth = require("../middleware/clientAuth");
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 // const AWS = require("aws-sdk");
@@ -70,62 +71,25 @@ router.get("/whatsapp", adminAuth, async (req, res) => {
   }
 });
 
-router.post("/whatsapp-message"  , async (req, res) => {
-
-  console.log(req.headers);
-
-  const { clientId, phone, name, lab } = req.body;
+router.post("/whatsapp-message", clientAuth, async (req, res) => {
+  const { phone, name } = req.body;
+  const clientId = req.user.id;
 
   const client = await prisma.client.findUnique({
     where: { id: parseInt(clientId) },
     include: { Plan: true }
   });
 
-  if (!client) return res.status(404).json({ error: "Client not found" });
-
-  const senderPhone = client.whatsappPhone;
-  const whatsappPhoneId = senderPhone ? client.whatsappPhoneId || 142971062224854 : 142971062224854;
-
-  const pricePerMsg = client.whatsappMsgPrice || 0.05;
-  const clientBalance = client.balance || 0;
-
-  const limits = {
-    FREE: 0,
-    SUBSCRIPTION: clientBalance / pricePerMsg,
-    PAID: clientBalance / pricePerMsg,
-  };
-
-  const planType = client.Plan?.type || "UNKNOWN";
-  const messageLimit = limits[planType] || 0;
-
-  const count = await getWhatsappCount(parseInt(clientId));
-  if (count >= messageLimit) {
-    return res.status(403).json({ error: "Message limit exceeded for the plan" });
+  if (!client) {
+    return res.status(404).json({ error: "Client not found" });
   }
 
   try {
     const url = await uploadToLinode(req.files, phone);
-    if (!url) return res.status(500).json({ message: "Uploading Error!" });
 
-    const payload = {
-      messaging_product: "whatsapp",
-      to: `964${phone}`,
-      type: "template",
-      template: {
-        name: "lab",
-        language: { code: "ar" },
-        components: [
-          { type: "header", parameters: [{ type: "text", text: name }] },
-          { type: "body", parameters: [{ type: "text", text: lab }] },
-          {
-            type: "button",
-            sub_type: "url",
-            index: "0",
-            parameters: [{ type: "text", text: url }],
-          },
-        ],
-      },
-    };
+    if (!url) {
+      return res.status(500).json({ error: "Uploading Error!" });
+    }
 
     const response = await fetch(
       `https://graph.facebook.com/v20.0/${whatsappPhoneId}/messages`,
@@ -135,131 +99,82 @@ router.post("/whatsapp-message"  , async (req, res) => {
           Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: `964${phone}`,
+          type: "template",
+          template: {
+            name: "lab",
+            language: {
+              code: "ar",
+            },
+            components: [
+              {
+                type: "header",
+                parameters: [
+                  {
+                    type: "text",
+                    text: name,
+                  },
+                ],
+              },
+              {
+                type: "body",
+                parameters: [
+                  {
+                    type: "text",
+                    text: client?.labName,
+                  },
+                ],
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [
+                  {
+                    type: "text",
+                    text: url,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
       }
     );
 
-    const resp = await response.json();
+    const data = await response.json();
 
-    if (!resp.messages || !resp.messages[0]?.id) {
-      return res.status(500).json({ error: "Failed to send WhatsApp message", details: resp });
-    }
-
-    const [whatsapp] = await prisma.$transaction([
-      prisma.whatsapp.create({
+    if (data?.messages[0]?.message_status === "accepted") {
+      await prisma.whatsapp.create({
         data: {
           name,
-          labName: lab,
+          labName: client?.labName,
           receiverPhone: phone,
-          senderPhone: senderPhone,
-          senderPhoneId: whatsappPhoneId,
+          senderPhone: "142971062224854",
           clientId: parseInt(clientId),
           fileName: url,
-          createdAt: new Date(),
+          createdAt: dayjs().toISOString(),
         },
-      }),
-      prisma.client.update({
+      });
+
+      await prisma.client.update({
         where: { id: parseInt(clientId) },
         data: {
           balance: {
-            decrement: pricePerMsg,
+            decrement: client?.whatsappMsgPrice,
           },
         },
-      }),
-    ]);
+      });
 
-    res.status(200).json({ message: "Message sent successfully", whatsapp, resp });
-
+      res.status(200).json({ message: "Message sent successfully" });
+    } else {
+      res.status(500).json({ error: "Somthing Warng!" });
+    }
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
     res.status(500).json({ error: "An error occurred while sending the message" });
-  }
-});
-
-// async function getWhatsappCount(clientId) {
-//   if (!clientId) {
-//     throw new Error("Invalid client ID");
-//   }
-
-//   const client = await prisma.client.findUnique({
-//     where: { id: clientId },
-//     include: {
-//       Plan: true,
-//     }
-//   });
-
-//   if (!client) {
-//     throw new Error("Client not found");
-//   }
-
-//   const now = dayjs();
-//   const startOfMonth = now.startOf('month').toDate();
-//   const endOfMonth = now.endOf('month').toDate();
-
-//   const count = await prisma.whatsapp.count({
-//     where: {
-//       clientId: clientId,
-//       createdAt: {
-//         gte: startOfMonth,
-//         lte: endOfMonth,
-//       },
-//     },
-//   });
-
-//   await prisma.client.update({
-//     where: { id: clientId },
-//     data: { messages: count },
-//   });
-
-//   return count;
-// }
-
-async function getWhatsappCount(clientId) {
-  if (!clientId) {
-    throw new Error("Invalid client ID");
-  }
-
-  const client = await prisma.client.findUnique({
-    where: { id: clientId },
-    select: {
-      balance: true,
-      whatsappMsgPrice: true,
-    },
-  });
-
-  if (!client) {
-    throw new Error("Client not found");
-  }
-
-  const messagePrice = client.whatsappMsgPrice ?? 0.05;
-
-  if (messagePrice <= 0) {
-    throw new Error("Invalid message price");
-  }
-
-  const availableMessages = Math.floor(client.balance / messagePrice);
-
-  return availableMessages;
-}
-
-
-router.get("/whatsapp-count/:clientId", clientAuth, async (req, res) => {
-  const clientId = parseInt(req.params.clientId);
-
-  try {
-    const count = await getWhatsappCount(clientId);
-    res.status(200).json({ count });
-  } catch (error) {
-    if (error.message === "Invalid client ID") {
-      res.status(400).json({ error: error.message });
-    } else if (error.message === "No serial found for the client") {
-      res.status(404).json({ error: error.message });
-    } else {
-      console.error("Error:", error);
-      res
-        .status(500)
-        .json({ error: "An error occurred while counting messages" });
-    }
   }
 });
 
@@ -274,14 +189,15 @@ router.get("/whatsapp-count/:clientId", clientAuth, async (req, res) => {
 // });
 
 // router.post("/whatsapp-message", async (req, res) => {
-//   const { phone, name, lab } = req.body; 
+//   const { phone, name, lab } = req.body;
 
 //   let url = await uploadToLinode(req.files);
 
-//   if (!url) res.status(500).json({ massege: "Uploading Error!" });
+//   if (!url) {
+//     return res.status(500).json({ massege: "Uploading Error!" });
+//   }
 
 //   try {
-//     res.status(200).json({ url });
 //     const response = await fetch(
 //       "https://graph.facebook.com/v20.0/142971062224854/messages",
 //       {
@@ -301,11 +217,11 @@ router.get("/whatsapp-count/:clientId", clientAuth, async (req, res) => {
 //             },
 //             components: [
 //               {
-//                 type: "header", 
+//                 type: "header",
 //                 parameters: [
 //                   {
 //                     type: "text",
-//                     text: name, 
+//                     text: name,
 //                   },
 //                 ],
 //               },
@@ -320,12 +236,12 @@ router.get("/whatsapp-count/:clientId", clientAuth, async (req, res) => {
 //               },
 //               {
 //                 type: "button",
-//                 sub_type: "url", 
-//                 index: "0", 
+//                 sub_type: "url",
+//                 index: "0",
 //                 parameters: [
 //                   {
 //                     type: "text",
-//                     text: url, 
+//                     text: url,
 //                   },
 //                 ],
 //               },
@@ -336,7 +252,24 @@ router.get("/whatsapp-count/:clientId", clientAuth, async (req, res) => {
 //     );
 
 //     const data = await response.json();
-//     res.status(200).json(data); 
+
+//     // if (data?.messages[0]?.message_status === "accepted") {
+//     //   await prisma.whatsapp.create({
+//     //     data: {
+//     //       name,
+//     //       labName: lab,
+//     //       receiverPhone: phone,
+//     //       senderPhone,
+//     //       clientId: parseInt(clientId),
+//     //       fileName: url,
+//     //       createdAt: dayjs().toISOString(),
+//     //     },
+//     //   });
+//     // }
+
+//     console.log(data);
+
+//     res.status(200).json(data);
 //   } catch (error) {
 //     console.error("Error:", error);
 //     res

@@ -68,6 +68,7 @@ router.post("/register", async (req, res) => {
         email,
         address,
         platform,
+        printCount: 20,
         planId: plan.id,
       },
     });

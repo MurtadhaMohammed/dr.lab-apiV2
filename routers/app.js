@@ -68,6 +68,7 @@ router.post("/register", async (req, res) => {
         email,
         address,
         platform,
+        printCount: 20,
         planId: plan.id,
       },
     });
@@ -183,12 +184,12 @@ router.post("/resend-otp", otpLimiter, async (req, res) => {
   }
 });
 
-router.post("/logout", async (req, res) => {
+router.post("/logout", clientAuth, async (req, res) => {
   try {
-    const { phone } = req.body;
+    const clientId = req.user.id;
 
-    const existingClient = await prisma.client.findFirst({
-      where: { phone: phone },
+    const existingClient = await prisma.client.findUnique({
+      where: { id: parseInt(clientId) },
     });
 
     if (!existingClient) {

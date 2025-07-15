@@ -1,6 +1,6 @@
 const shortid = require("shortid");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
-
+console.log(process.env.SECRET_ACCESS_KEY)
 const s3Client = new S3Client({
   region: "us-east-1", // Replace with your region
   credentials: {

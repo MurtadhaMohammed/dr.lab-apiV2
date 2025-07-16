@@ -1,18 +1,17 @@
 const shortid = require("shortid");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
+const s3Client = new S3Client({
+  region: "us-east-1", // Replace with your region
+  credentials: {
+    accessKeyId: "EIY10XXI3SVFYW5QEF4D", // Replace with your Access Key
+    secretAccessKey: process.env.SECRET_ACCESS_KEY, // Replace with your Secret Key
+  },
+  endpoint: "https://drlab.us-east-1.linodeobjects.com", // Linode Object Storage endpoint
+  forcePathStyle: true, // Required for S3-compatible storage
+});
+
 const uploadToLinode = async (files, phone) => {
-  console.log("SECRET_ACCESS_KEY: ", process.env.SECRET_ACCESS_KEY)
-  const s3Client = new S3Client({
-    region: "us-east-1", // Replace with your region
-    credentials: {
-      accessKeyId: "EIY10XXI3SVFYW5QEF4D", // Replace with your Access Key
-      secretAccessKey: process.env.SECRET_ACCESS_KEY, // Replace with your Secret Key
-    },
-    endpoint: "https://drlab.us-east-1.linodeobjects.com", // Linode Object Storage endpoint
-    forcePathStyle: true, // Required for S3-compatible storage
-  });
-  
   if (!files || Object.keys(files).length === 0) {
     return res.status(400).send("No files were uploaded.");
   }

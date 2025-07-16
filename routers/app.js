@@ -299,7 +299,7 @@ router.post("/whatsapp-message", clientAuth, async (req, res) => {
 
   const result = await sendFileMsg(phone, name, client?.labName, req.files);
   if (!result?.success) {
-    return res.status(500).json(result?.error);
+    return res.status(500).json({ success: false, message: result?.error });
   }
 
   await prisma.whatsapp.create({
@@ -323,7 +323,7 @@ router.post("/whatsapp-message", clientAuth, async (req, res) => {
     },
   });
 
-  res.status(200).json({ message: result?.message });
+  res.status(200).json({ message: result?.message, success: true });
 });
 
 module.exports = router;

@@ -9,12 +9,17 @@ const { otpLimiter } = require("../middleware/rateLimit");
 
 router.put("/update-client", clientAuth, async (req, res) => {
   try {
-    const { device, labName, name, email, address } = req.body;
+    const { labName, name, email, address } = req.body;
     const clientId = req.user.id;
 
+    // Find client by ID only (from JWT token)
     let client = await prisma.client.findUnique({
-      where: { id: parseInt(clientId), device },
+      where: { id: parseInt(clientId) },
     });
+
+    if (!client) {
+      return res.status(404).json({ error: "Client not found" });
+    }
 
     const updatedClient = await prisma.client.update({
       where: { id: client.id },

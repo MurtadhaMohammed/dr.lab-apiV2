@@ -38,6 +38,7 @@ model Client {
   printCount       Int?       @default(0)
   platform         String?
   planId           Int
+  isTestUpdated    Boolean?   @default(false)
   Plan             Plan       @relation(fields: [planId], references: [id])
   invoices         Invoice[]
   Wallet           Wallet[]

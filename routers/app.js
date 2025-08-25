@@ -6,6 +6,7 @@ const router = express.Router();
 const prisma = require("../prisma/prismaClient");
 const { sendOtp, sendFileMsg } = require("../helper/sendWhatsapp");
 const { otpLimiter } = require("../middleware/rateLimit");
+const newTestGroups = require("../helper/newTestGroups.json");
 
 router.put("/update-client", clientAuth, async (req, res) => {
   try {
@@ -73,6 +74,7 @@ router.post("/register", async (req, res) => {
         email,
         address,
         platform,
+        isTestUpdated: true,
         printCount: 20,
         planId: plan.id,
       },
@@ -232,10 +234,21 @@ router.post("/user", clientAuth, async (req, res) => {
     const now = dayjs();
     const lastActive = dayjs(client.lastActive);
 
+    // console.log("client?.isTestUpdated", client?.isTestUpdated);
+    // console.log("newTestGroups", newTestGroups);
+
     if (!client.lastActive || now.diff(lastActive, "minute") >= 15) {
       await prisma.client.update({
         where: { id: clientId },
-        data: { lastActive: now.toISOString() },
+        data: { lastActive: now.toISOString(), isTestUpdated: true },
+      });
+    }
+
+    if (!client?.isTestUpdated) {
+      client.testGroups = JSON.stringify(newTestGroups);
+      await prisma.client.update({
+        where: { id: clientId },
+        data: { isTestUpdated: true },
       });
     }
 

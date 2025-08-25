@@ -1,0 +1,109 @@
+[
+  {
+    "name": "TORCH Panel",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\":1,\"name\":\"TORCH Serology\",\"tests\":[{\"id\":1,\"name\":\"Toxoplasma IgM\",\"normal\":\"Negative\",\"isSelecte\":false,\"options\":[]},{\"id\":2,\"name\":\"Toxoplasma IgG\",\"normal\":\"Negative if non-immune; Positive indicates past immunity (assay cutoffs vary)\",\"isSelecte\":false,\"options\":[]},{\"id\":3,\"name\":\"Rubella IgM\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":4,\"name\":\"Rubella IgG\",\"normal\":\"Immune ≥10 IU/mL (assay-dependent)\",\"isSelecte\":false,\"options\":[]},{\"id\":5,\"name\":\"CMV IgM\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":6,\"name\":\"CMV IgG\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":7,\"name\":\"HSV-1 IgM\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":8,\"name\":\"HSV-2 IgM\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":9,\"name\":\"HSV-1 IgG\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":10,\"name\":\"HSV-2 IgG\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "Culture",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\": 1, \"name\": \"Microbiology Cultures\", \"tests\": [{\"id\": 1, \"name\": \"Urine culture\", \"normal\": \"No growth / ≤10^3 CFU/mL (clinical interpretation required)\", \"isSelecte\": false, \"options\": []}, {\"id\": 2, \"name\": \"Stool culture\", \"normal\": \"No enteric pathogens isolated; normal flora\", \"isSelecte\": false, \"options\": []}, {\"id\": 3, \"name\": \"Sputum culture\", \"normal\": \"Normal oropharyngeal flora; no predominant pathogen\", \"isSelecte\": false, \"options\": []}, {\"id\": 4, \"name\": \"Blood culture\", \"normal\": \"No growth\", \"isSelecte\": false, \"options\": []}, {\"id\": 5, \"name\": \"Throat/Swab culture\", \"normal\": \"Normal flora; no pathogenic growth\", \"isSelecte\": false, \"options\": []}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "Tests (Individual)",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\": 1, \"name\": \"Common Individual Tests\", \"tests\": [{\"id\": 1, \"name\": \"Glucose (Fasting)\", \"normal\": \"70 – 99 mg/dL\", \"isSelecte\": false, \"options\": []}, {\"id\": 2, \"name\": \"Creatinine\", \"normal\": \"Male: 0.74 – 1.35 mg/dL; Female: 0.59 – 1.04 mg/dL\", \"isSelecte\": false, \"options\": []}, {\"id\": 3, \"name\": \"Urea (BUN)\", \"normal\": \"7 – 20 mg/dL\", \"isSelecte\": false, \"options\": []}, {\"id\": 4, \"name\": \"Total Cholesterol\", \"normal\": \"< 200 mg/dL desirable\", \"isSelecte\": false, \"options\": []}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "Sputum+",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\":1,\"name\":\"Macroscopic\",\"tests\":[{\"id\":1,\"name\":\"Color\",\"normal\":\"Clear/white; purulent if infection\",\"isSelecte\":false,\"options\":[]},{\"id\":2,\"name\":\"Consistency\",\"normal\":\"Mucoid\",\"isSelecte\":false,\"options\":[]},{\"id\":3,\"name\":\"Odor\",\"normal\":\"None\",\"isSelecte\":false,\"options\":[]}]},{\"id\":2,\"name\":\"Microscopic\",\"tests\":[{\"id\":4,\"name\":\"WBC\",\"normal\":\"None to few/HPF\",\"isSelecte\":false,\"options\":[]},{\"id\":5,\"name\":\"Epithelial cells\",\"normal\":\"Few\",\"isSelecte\":false,\"options\":[]},{\"id\":6,\"name\":\"Bacteria\",\"normal\":\"None to rare\",\"isSelecte\":false,\"options\":[]},{\"id\":7,\"name\":\"Fungi (Yeast)\",\"normal\":\"None\",\"isSelecte\":false,\"options\":[]},{\"id\":8,\"name\":\"AFB (TB smear)\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "SFA (Semen Fluid Analysis)",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\": 1, \"name\": \"Physical\", \"tests\": [{\"id\": 1, \"name\": \"Volume\", \"normal\": \"≥1.4 mL (WHO 2021 lower reference)\", \"isSelecte\": false, \"options\": []}, {\"id\": 2, \"name\": \"Color & Odor\", \"normal\": \"Gray-opalescent; characteristic odor\", \"isSelecte\": false, \"options\": []}, {\"id\": 3, \"name\": \"Liquefaction\", \"normal\": \"Within 60 minutes\", \"isSelecte\": false, \"options\": []}, {\"id\": 4, \"name\": \"Viscosity\", \"normal\": \"Normal (threads <2 cm)\", \"isSelecte\": false, \"options\": []}, {\"id\": 5, \"name\": \"pH\", \"normal\": \"7.2 – 8.0\", \"isSelecte\": false, \"options\": []}]}, {\"id\": 2, \"name\": \"Microscopic\", \"tests\": [{\"id\": 6, \"name\": \"Sperm concentration\", \"normal\": \"≥16 million/mL (WHO 2021 lower reference)\", \"isSelecte\": false, \"options\": []}, {\"id\": 7, \"name\": \"Total sperm number\", \"normal\": \"≥39 million/ejaculate (WHO 2021)\", \"isSelecte\": false, \"options\": []}, {\"id\": 8, \"name\": \"Progressive motility (PR)\", \"normal\": \"≥30% (WHO 2021)\", \"isSelecte\": false, \"options\": []}, {\"id\": 9, \"name\": \"Total motility (PR+NP)\", \"normal\": \"≥42% (WHO 2021)\", \"isSelecte\": false, \"options\": []}, {\"id\": 10, \"name\": \"Morphology (normal forms)\", \"normal\": \"≥4% (strict Kruger)\", \"isSelecte\": false, \"options\": []}, {\"id\": 11, \"name\": \"Vitality (live sperm)\", \"normal\": \"≥58%\", \"isSelecte\": false, \"options\": []}, {\"id\": 12, \"name\": \"Round cells/WBC\", \"normal\": \"≤1.0×10^6/mL\", \"isSelecte\": false, \"options\": []}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "GUE (General Urine Examination)",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\":1,\"name\":\"Physical examination\",\"tests\":[{\"id\":1,\"name\":\"Color\",\"normal\":\"Pale yellow to amber\",\"isSelecte\":false,\"options\":[]},{\"id\":2,\"name\":\"Appearance\",\"normal\":\"Clear\",\"isSelecte\":false,\"options\":[]},{\"id\":3,\"name\":\"Specific gravity\",\"normal\":\"1.005 – 1.030\",\"isSelecte\":false,\"options\":[]},{\"id\":4,\"name\":\"pH\",\"normal\":\"4.5 – 8.0\",\"isSelecte\":false,\"options\":[]}]},{\"id\":2,\"name\":\"Chemical examination\",\"tests\":[{\"id\":5,\"name\":\"Protein (Albumin)\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":6,\"name\":\"Glucose\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":7,\"name\":\"Ketone\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":8,\"name\":\"Bilirubin\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":9,\"name\":\"Urobilinogen\",\"normal\":\"0.1 – 1.0 EU/dL\",\"isSelecte\":false,\"options\":[]},{\"id\":10,\"name\":\"Nitrite\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":11,\"name\":\"Leukocyte esterase\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":12,\"name\":\"Blood (Occult)\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]}]},{\"id\":3,\"name\":\"Microscopic examination\",\"tests\":[{\"id\":13,\"name\":\"RBC\",\"normal\":\"0 – 2 /HPF\",\"isSelecte\":false,\"options\":[]},{\"id\":14,\"name\":\"WBC\",\"normal\":\"0 – 5 /HPF\",\"isSelecte\":false,\"options\":[]},{\"id\":15,\"name\":\"Epithelial cells\",\"normal\":\"0 – 5 /HPF\",\"isSelecte\":false,\"options\":[]},{\"id\":16,\"name\":\"Casts\",\"normal\":\"None; hyaline 0–2 /LPF\",\"isSelecte\":false,\"options\":[]},{\"id\":17,\"name\":\"Crystals\",\"normal\":\"None to occasional\",\"isSelecte\":false,\"options\":[]},{\"id\":18,\"name\":\"Bacteria\",\"normal\":\"None to rare\",\"isSelecte\":false,\"options\":[]}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "HVS (High Vaginal Swab)",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\": 1, \"name\": \"Microscopy\", \"tests\": [{\"id\": 1, \"name\": \"Pus cells\", \"normal\": \"0 – 5 /HPF\", \"isSelecte\": false, \"options\": []}, {\"id\": 2, \"name\": \"Epithelial cells\", \"normal\": \"Few /HPF\", \"isSelecte\": false, \"options\": []}, {\"id\": 3, \"name\": \"Candida\", \"normal\": \"Absent\", \"isSelecte\": false, \"options\": []}, {\"id\": 4, \"name\": \"Trichomonas\", \"normal\": \"Absent\", \"isSelecte\": false, \"options\": []}, {\"id\": 5, \"name\": \"Clue cells\", \"normal\": \"Absent\", \"isSelecte\": false, \"options\": []}, {\"id\": 6, \"name\": \"Bacteria\", \"normal\": \"Lactobacilli predominant; no pathogens\", \"isSelecte\": false, \"options\": []}, {\"id\": 7, \"name\": \"pH\", \"normal\": \"≤4.5 (reproductive age)\", \"isSelecte\": false, \"options\": []}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "Stone Analysis",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\": 1, \"name\": \"Stone Composition\", \"tests\": [{\"id\": 1, \"name\": \"Calcium oxalate\", \"normal\": \"Reported if present (no normal 'range')\", \"isSelecte\": false, \"options\": []}, {\"id\": 2, \"name\": \"Uric acid\", \"normal\": \"Reported if present\", \"isSelecte\": false, \"options\": []}, {\"id\": 3, \"name\": \"Struvite (MAP)\", \"normal\": \"Reported if present\", \"isSelecte\": false, \"options\": []}, {\"id\": 4, \"name\": \"Calcium phosphate\", \"normal\": \"Reported if present\", \"isSelecte\": false, \"options\": []}, {\"id\": 5, \"name\": \"Cystine\", \"normal\": \"Reported if present\", \"isSelecte\": false, \"options\": []}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "GSE (General Stool Examination)",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\":1,\"name\":\"Macroscopic\",\"tests\":[{\"id\":1,\"name\":\"Color\",\"normal\":\"Brown\",\"isSelecte\":false,\"options\":[]},{\"id\":2,\"name\":\"Consistency\",\"normal\":\"Formed\",\"isSelecte\":false,\"options\":[]},{\"id\":3,\"name\":\"Mucus\",\"normal\":\"Absent\",\"isSelecte\":false,\"options\":[]},{\"id\":4,\"name\":\"Blood (occult)\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]}]},{\"id\":2,\"name\":\"Microscopic\",\"tests\":[{\"id\":5,\"name\":\"Ova & Parasites\",\"normal\":\"None seen\",\"isSelecte\":false,\"options\":[]},{\"id\":6,\"name\":\"WBC\",\"normal\":\"None to rare /HPF\",\"isSelecte\":false,\"options\":[]},{\"id\":7,\"name\":\"RBC\",\"normal\":\"None /HPF\",\"isSelecte\":false,\"options\":[]},{\"id\":8,\"name\":\"Fat globules\",\"normal\":\"Absent\",\"isSelecte\":false,\"options\":[]},{\"id\":9,\"name\":\"Starch\",\"normal\":\"Absent\",\"isSelecte\":false,\"options\":[]}]},{\"id\":3,\"name\":\"Chemical\",\"tests\":[{\"id\":10,\"name\":\"Reducing substances\",\"normal\":\"\",\"isSelecte\":true,\"options\":[\"positive\",\"negative\"]},{\"id\":11,\"name\":\"pH\",\"normal\":\"6.5 – 7.5\",\"isSelecte\":false,\"options\":[]}]}]",
+    "isSelecte": 0,
+    "updatedAt": "",
+    "createdAt": ""
+  },
+  {
+    "name": "CBC (Complete Blood Count)",
+    "price": 0,
+    "normal": "",
+    "options": "[]",
+    "type": "groupTest",
+    "groupTest": "[{\"id\": 1, \"name\": \"Complete Blood Count\", \"tests\": [{\"id\": 1, \"name\": \"WBC (White Blood Cells)\", \"normal\": \"4,000 - 11,000 /µL\", \"isSelected\": false},{\"id\": 2, \"name\": \"RBC (Red Blood Cells)\", \"normal\": \"Male: 4.7 - 6.1 million/µL, Female: 4.2 - 5.4 million/µL\", \"isSelected\": false},{\"id\": 3, \"name\": \"Hemoglobin (Hb)\", \"normal\": \"Male: 13.5 - 17.5 g/dL, Female: 12 - 15.5 g/dL\", \"isSelected\": false},{\"id\": 4, \"name\": \"Hematocrit (Hct)\", \"normal\": \"Male: 41 - 53%, Female: 36 - 46%\", \"isSelected\": false},{\"id\": 5, \"name\": \"MCV (Mean Corpuscular Volume)\", \"normal\": \"80 - 96 fL\", \"isSelected\": false},{\"id\": 6, \"name\": \"MCH (Mean Corpuscular Hemoglobin)\", \"normal\": \"27 - 33 pg\", \"isSelected\": false},{\"id\": 7, \"name\": \"MCHC (Mean Corpuscular Hemoglobin Concentration)\", \"normal\": \"32 - 36 g/dL\", \"isSelected\": false},{\"id\": 8, \"name\": \"RDW (Red Cell Distribution Width)\", \"normal\": \"11.5 - 14.5%\", \"isSelected\": false},{\"id\": 9, \"name\": \"Platelets\", \"normal\": \"150,000 - 450,000 /µL\", \"isSelected\": false},{\"id\": 10, \"name\": \"Neutrophils %\", \"normal\": \"40 - 70%\", \"isSelected\": false},{\"id\": 11, \"name\": \"Lymphocytes %\", \"normal\": \"20 - 45%\", \"isSelected\": false},{\"id\": 12, \"name\": \"Monocytes %\", \"normal\": \"2 - 8%\", \"isSelected\": false},{\"id\": 13, \"name\": \"Eosinophils %\", \"normal\": \"1 - 4%\", \"isSelected\": false},{\"id\": 14, \"name\": \"Basophils %\", \"normal\": \"0 - 1%\", \"isSelected\": false}]}]"
+  }
+]

@@ -188,7 +188,7 @@ router.put("/:id", adminAuth, async (req, res) => {
       },
     });
 
-    console.log(updatedClient);
+    // console.log(updatedClient);
 
     res.status(200).json({ message: "Client updated!" });
   } catch (error) {

@@ -27,7 +27,6 @@ model Client {
   active           Boolean    @default(true)
   createdAt        DateTime   @default(now())
   expiredAt        DateTime?
-  lastActive       DateTime?
   device           String?    @unique
   otp              Int?
   otpCount         Int?       @default(0)
@@ -38,6 +37,7 @@ model Client {
   printCount       Int?       @default(0)
   platform         String?
   planId           Int
+  lastActive       DateTime?
   isTestUpdated    Boolean?   @default(false)
   Plan             Plan       @relation(fields: [planId], references: [id])
   invoices         Invoice[]

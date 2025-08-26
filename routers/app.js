@@ -215,6 +215,47 @@ router.post("/logout", clientAuth, async (req, res) => {
   }
 });
 
+router.post("/user/v2", clientAuth, async (req, res) => {
+  try {
+    const clientId = req?.user?.id;
+    const client = await prisma.client.findUnique({
+      where: {
+        id: parseInt(clientId, 10),
+      },
+      include: {
+        Plan: true,
+      },
+    });
+
+    if (!client || !client?.active) {
+      return res.status(404).json({ error: "User unactive !." });
+    }
+
+    const now = dayjs();
+    const lastActive = dayjs(client.lastActive);
+
+    if (!client.lastActive || now.diff(lastActive, "minute") >= 15) {
+      await prisma.client.update({
+        where: { id: clientId },
+        data: { lastActive: now.toISOString() },
+      });
+    }
+
+    if (!client?.isTestUpdated) {
+      client.testGroups = JSON.stringify(newTestGroups);
+      await prisma.client.update({
+        where: { id: clientId },
+        data: { isTestUpdated: true },
+      });
+    }
+
+    res.status(200).json(client);
+  } catch (error) {
+    console.error("Error removing device from user:", error);
+    res.status(500).json({ error: "Could not get user data" });
+  }
+});
+
 router.post("/user", clientAuth, async (req, res) => {
   try {
     const clientId = req?.user?.id;
@@ -234,21 +275,10 @@ router.post("/user", clientAuth, async (req, res) => {
     const now = dayjs();
     const lastActive = dayjs(client.lastActive);
 
-    // console.log("client?.isTestUpdated", client?.isTestUpdated);
-    // console.log("newTestGroups", newTestGroups);
-
     if (!client.lastActive || now.diff(lastActive, "minute") >= 15) {
       await prisma.client.update({
         where: { id: clientId },
-        data: { lastActive: now.toISOString(), isTestUpdated: true },
-      });
-    }
-
-    if (!client?.isTestUpdated) {
-      client.testGroups = JSON.stringify(newTestGroups);
-      await prisma.client.update({
-        where: { id: clientId },
-        data: { isTestUpdated: true },
+        data: { lastActive: now.toISOString() },
       });
     }
 

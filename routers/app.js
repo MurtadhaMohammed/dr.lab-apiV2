@@ -342,7 +342,7 @@ router.post("/upload-pdf", clientAuth, async (req, res) => {
     if (!pdfUrl) {
       return res.status(501).json({ error: "Uploading Error!." });
     }
-    res.status(200).send({ pdfUrl: `${linodeUrl}/${pdfUrl}` });
+    res.status(200).send({ pdfUrl: `https://drlab.app/pdf/${pdfUrl}` });
   } catch (error) {
     console.error("Error Uploading : ", error);
     res.status(500).json({ error: "Error Uploading" });

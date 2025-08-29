@@ -2,13 +2,15 @@ const shortid = require("shortid");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 require("dotenv").config();
 
+const linodeUrl = "https://drlab.us-east-1.linodeobjects.com"
+
 const s3Client = new S3Client({
   region: "us-east-1", // Replace with your region
   credentials: {
     accessKeyId: "EIY10XXI3SVFYW5QEF4D", // Replace with your Access Key
     secretAccessKey: process.env.SECRET_ACCESS_KEY, // Replace with your Secret Key
   },
-  endpoint: "https://drlab.us-east-1.linodeobjects.com", // Linode Object Storage endpoint
+  endpoint: linodeUrl, // Linode Object Storage endpoint
   forcePathStyle: true, // Required for S3-compatible storage
 });
 
@@ -19,7 +21,7 @@ const uploadToLinode = async (files, phone) => {
 
   const file = files.file;
   const bucketName = "files"; // Replace with your bucket name
-  const objectName = `${phone}-${shortid.generate().slice(0, 6)}`; // Generate the file name
+  const objectName = `${phone}-${shortid.generate().slice(0, 6)}.pdf`; // Generate the file name
 
   try {
     const command = new PutObjectCommand({
@@ -36,7 +38,8 @@ const uploadToLinode = async (files, phone) => {
     return fileUrl;
   } catch (error) {
     console.error("File upload failed:", error);
+    return;
   }
 };
 
-module.exports = { uploadToLinode };
+module.exports = { uploadToLinode , linodeUrl};

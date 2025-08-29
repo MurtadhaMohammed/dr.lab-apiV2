@@ -7,6 +7,7 @@ const prisma = require("../prisma/prismaClient");
 const { sendOtp, sendFileMsg } = require("../helper/sendWhatsapp");
 const { otpLimiter } = require("../middleware/rateLimit");
 const newTestGroups = require("../helper/newTestGroups.json");
+const { uploadToLinode, linodeUrl } = require("../helper/uploadToLinode");
 
 router.put("/update-client", clientAuth, async (req, res) => {
   try {
@@ -327,6 +328,24 @@ router.post("/login", otpLimiter, async (req, res) => {
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ error: "Could not log in" });
+  }
+});
+
+router.post("/upload-pdf", clientAuth, async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(501).json({ error: "Phone is requierd!." });
+    }
+    const pdfUrl = await uploadToLinode(req.files, phone);
+    if (!pdfUrl) {
+      return res.status(501).json({ error: "Uploading Error!." });
+    }
+    res.status(200).send({ pdfUrl: `${linodeUrl}/${pdfUrl}` });
+  } catch (error) {
+    console.error("Error Uploading : ", error);
+    res.status(500).json({ error: "Error Uploading" });
   }
 });
 

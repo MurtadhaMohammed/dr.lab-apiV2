@@ -20,15 +20,15 @@ const fileUpload = require("express-fileupload");
 require("dotenv").config();
 
 app.set('trust proxy', true);
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.use(
   fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
   })
 );
-
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 app.get("/api", (req, res) => {
   res.json({ msg: "hi All" });

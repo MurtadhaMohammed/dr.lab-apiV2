@@ -36,6 +36,7 @@ model Client {
   whatsappMsgPrice Float?     @default(0.05)
   printCount       Int?       @default(0)
   platform         String?
+  code             String?    @default("964")
   planId           Int
   lastActive       DateTime?
   isTestUpdated    Boolean?   @default(false)

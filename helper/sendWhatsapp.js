@@ -1,11 +1,11 @@
 const { uploadToLinode } = require("./uploadToLinode");
 
-const sendOtp = async (phone, otpCode) => {
+const sendOtp = async (phone, otpCode, countryCode = "964") => {
   try {
     const phoneStr = String(phone);
     const formattedPhone = phoneStr.startsWith("0")
-      ? `964${phoneStr.substring(1)}`
-      : `964${phoneStr}`;
+      ? `${countryCode}${phoneStr.substring(1)}`
+      : `${countryCode}${phoneStr}`;
 
     const payload = {
       messaging_product: "whatsapp",
@@ -68,7 +68,7 @@ const sendOtp = async (phone, otpCode) => {
   }
 };
 
-const sendFileMsg = async (phone, name, labName, file) => {
+const sendFileMsg = async (phone, name, labName, file, countryCode = "964") => {
   try {
     const url = await uploadToLinode(file, phone);
     const senderId = "142971062224854";
@@ -85,7 +85,7 @@ const sendFileMsg = async (phone, name, labName, file) => {
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
-          to: `964${phone}`,
+          to: `${countryCode}${phone}`,
           type: "template",
           template: {
             name: "lab",

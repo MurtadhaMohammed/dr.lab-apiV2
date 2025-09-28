@@ -23,6 +23,7 @@ model Client {
   labName          String?
   phone            String     @unique
   email            String?
+  code             String?
   address          String?
   active           Boolean    @default(true)
   createdAt        DateTime   @default(now())

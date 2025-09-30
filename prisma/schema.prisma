@@ -23,7 +23,6 @@ model Client {
   labName          String?
   phone            String     @unique
   email            String?
-  code             String?
   address          String?
   active           Boolean    @default(true)
   createdAt        DateTime   @default(now())
@@ -37,6 +36,7 @@ model Client {
   whatsappMsgPrice Float?     @default(0.05)
   printCount       Int?       @default(0)
   platform         String?
+  code             String?    @default("964")
   planId           Int
   lastActive       DateTime?
   isTestUpdated    Boolean?   @default(false)

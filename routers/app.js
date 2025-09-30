@@ -41,7 +41,7 @@ router.put("/update-client", clientAuth, async (req, res) => {
 });
 
 router.post("/register", async (req, res) => {
-  const { phone, labName, name, email, address, device, platform } = req.body;
+  const { phone, labName, name, email, address, device, platform, code } = req.body;
 
   try {
     const existingPhone = await prisma.client.findUnique({ where: { phone } });
@@ -73,6 +73,7 @@ router.post("/register", async (req, res) => {
         labName,
         phone,
         email,
+        code,
         address,
         platform,
         isTestUpdated: true,
@@ -175,7 +176,7 @@ router.post("/resend-otp", otpLimiter, async (req, res) => {
     });
 
     try {
-      await sendOtp(phone, otp);
+      await sendOtp(phone, otp, client.code);
       // console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
     } catch (whatsappError) {
       console.error("WhatsApp OTP sending failed:", whatsappError);
@@ -322,7 +323,7 @@ router.post("/login", otpLimiter, async (req, res) => {
       },
     });
 
-    await sendOtp(phone, otp);
+    await sendOtp(phone, otp, client.code);
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -364,7 +365,7 @@ router.post("/whatsapp-message", clientAuth, async (req, res) => {
     return res.status(500).json({ error: "Your Balance not enough!." });
   }
 
-  const result = await sendFileMsg(phone, name, client?.labName, req.files);
+  const result = await sendFileMsg(phone, name, client?.labName, req.files, client?.code);
   if (!result?.success) {
     return res.status(500).json({ success: false, message: result?.error });
   }

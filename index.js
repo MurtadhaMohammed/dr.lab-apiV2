@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 var cors = require("cors");
 const app = express();
@@ -17,9 +18,9 @@ const appRouter = require("./routers/app");
 
 const fileUpload = require("express-fileupload");
 
-require("dotenv").config();
 
-app.set('trust proxy', true);
+
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -305,7 +305,7 @@ router.post("/login", otpLimiter, async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    if (client.device && !password) {
+    if (client.device && !password && password !== "true") {
       return res.status(400).json({
         error:
           "This account is already logged in from another device. Please log out from the existing device first.",
@@ -345,11 +345,9 @@ router.post("/upload-pdf", clientAuth, async (req, res) => {
     if (!pdfUrl) {
       return res.status(501).json({ error: "Uploading Error!." });
     }
-    res
-      .status(200)
-      .send({
-        pdfUrl: `https://drlab.app/pdf/${pdfUrl.replace("files/", "")}`,
-      });
+    res.status(200).send({
+      pdfUrl: `https://drlab.app/pdf/${pdfUrl.replace("files/", "")}`,
+    });
   } catch (error) {
     console.error("Error Uploading : ", error);
     res.status(500).json({ error: "Error Uploading" });

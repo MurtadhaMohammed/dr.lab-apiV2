@@ -293,11 +293,10 @@ router.post("/user", clientAuth, async (req, res) => {
 });
 
 router.post("/login", otpLimiter, async (req, res) => {
-  const { phone } = req.body;
-  const { password } = req.params;
+  const { phone,password } = req.body;
+
 
   console.log(password);
-  
   try {
     const client = await prisma.client.findUnique({
       where: { phone },

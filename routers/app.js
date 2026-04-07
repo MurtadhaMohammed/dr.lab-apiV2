@@ -293,7 +293,7 @@ router.post("/user", clientAuth, async (req, res) => {
 });
 
 router.post("/login", otpLimiter, async (req, res) => {
-  const { phone,password } = req.body;
+  const { phone, password } = req.body;
 
   try {
     const client = await prisma.client.findUnique({
@@ -301,10 +301,23 @@ router.post("/login", otpLimiter, async (req, res) => {
     });
 
     if (!client) {
+      console.log("client_login_attempt : error -> not found", {
+        success: false,
+        phone,
+        reason: "Client not found",
+        device: req.body?.device,
+      });
       return res.status(404).json({ error: "Client not found" });
     }
 
     if (client.device && !password && password !== "true") {
+      console.log("client_login_attempt : error -> already logged in", {
+        success: false,
+        clientId: client.id,
+        phone,
+        device: client.device,
+        reason: "Already logged in on another device",
+      });
       return res.status(400).json({
         error:
           "This account is already logged in from another device. Please log out from the existing device first.",

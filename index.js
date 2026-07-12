@@ -15,6 +15,7 @@ const walletRouter = require("./routers/wallet");
 
 // const dashboardRouter = require("./routers/dashboard")
 const appRouter = require("./routers/app");
+const syncRouter = require("./routers/sync");
 
 const fileUpload = require("express-fileupload");
 
@@ -22,7 +23,7 @@ const fileUpload = require("express-fileupload");
 
 app.set('trust proxy', 1);
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
@@ -43,6 +44,7 @@ app.use("/api/plan", planRouter);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/app", appRouter);
 app.use("/api/wallet", walletRouter);
+app.use("/api/sync", syncRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

@@ -129,6 +129,43 @@ router.post("/verify-otp", async (req, res) => {
       }
     }
 
+    // Multi-device (sync-enabled) accounts register a Device row instead of
+    // being locked to Client.device. Legacy accounts keep the old behavior.
+    let deviceRecord = null;
+    if (client.syncEnabled && device) {
+      const existingDevice = await prisma.device.findUnique({
+        where: { clientId_machineId: { clientId: client.id, machineId: device } },
+      });
+
+      if (existingDevice?.revokedAt) {
+        return res.status(403).json({
+          error: "This device has been revoked. Contact the account owner.",
+        });
+      }
+
+      if (!existingDevice) {
+        const activeCount = await prisma.device.count({
+          where: { clientId: client.id, revokedAt: null },
+        });
+        if (activeCount >= client.maxDevices) {
+          return res.status(403).json({
+            error: `Device limit reached (${client.maxDevices}). Revoke another device first.`,
+          });
+        }
+      }
+
+      deviceRecord = await prisma.device.upsert({
+        where: { clientId_machineId: { clientId: client.id, machineId: device } },
+        create: {
+          clientId: client.id,
+          machineId: device,
+          platform: client.platform,
+          lastSeenAt: new Date(),
+        },
+        update: { lastSeenAt: new Date() },
+      });
+    }
+
     const updatedClient = await prisma.client.update({
       where: { id: client.id },
       data: {
@@ -139,7 +176,10 @@ router.post("/verify-otp", async (req, res) => {
       },
     });
 
-    const token = generateToken(updatedClient);
+    const token = generateToken(
+      updatedClient,
+      deviceRecord ? { deviceId: deviceRecord.id } : {}
+    );
 
     return res.status(200).json({
       success: true,
@@ -210,6 +250,12 @@ router.post("/logout", clientAuth, async (req, res) => {
       where: { id: existingClient?.id },
       data: { device: null },
     });
+
+    // Logout only ends the session token — it does NOT revoke the device.
+    // A device stays authorized to sync until the user explicitly revokes it
+    // from the Devices settings page (POST /app/devices/:id/revoke). This
+    // matches how a normal "log out" should behave: signing out to switch
+    // accounts or restart the app shouldn't require re-authorizing the PC.
 
     res.json({ message: "Logout successful" });
   } catch (error) {
@@ -310,7 +356,9 @@ router.post("/login", otpLimiter, async (req, res) => {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    if (client.device && !password && password !== "true") {
+    // Sync-enabled accounts may log in from multiple devices; the limit is
+    // enforced per-device in /verify-otp instead.
+    if (!client.syncEnabled && client.device && !password && password !== "true") {
       console.log("client_login_attempt : error -> already logged in", {
         success: false,
         clientId: client.id,
@@ -343,6 +391,72 @@ router.post("/login", otpLimiter, async (req, res) => {
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ error: "Could not log in" });
+  }
+});
+
+router.get("/devices", clientAuth, async (req, res) => {
+  try {
+    const devices = await prisma.device.findMany({
+      where: { clientId: parseInt(req.user.id) },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        machineId: true,
+        name: true,
+        platform: true,
+        lastSeenAt: true,
+        revokedAt: true,
+        createdAt: true,
+      },
+    });
+    res.status(200).json({ devices });
+  } catch (error) {
+    console.error("Error listing devices:", error);
+    res.status(500).json({ error: "Could not list devices" });
+  }
+});
+
+router.post("/devices/:id/revoke", clientAuth, async (req, res) => {
+  try {
+    const deviceId = parseInt(req.params.id);
+    const device = await prisma.device.findUnique({ where: { id: deviceId } });
+
+    // Scope to the caller's own account — never allow cross-client revocation.
+    if (!device || device.clientId !== parseInt(req.user.id)) {
+      return res.status(404).json({ error: "Device not found" });
+    }
+
+    await prisma.device.update({
+      where: { id: deviceId },
+      data: { revokedAt: new Date() },
+    });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error revoking device:", error);
+    res.status(500).json({ error: "Could not revoke device" });
+  }
+});
+
+router.post("/devices/:id/rename", clientAuth, async (req, res) => {
+  try {
+    const deviceId = parseInt(req.params.id);
+    const { name } = req.body;
+    const device = await prisma.device.findUnique({ where: { id: deviceId } });
+
+    if (!device || device.clientId !== parseInt(req.user.id)) {
+      return res.status(404).json({ error: "Device not found" });
+    }
+
+    await prisma.device.update({
+      where: { id: deviceId },
+      data: { name: name || null },
+    });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error renaming device:", error);
+    res.status(500).json({ error: "Could not rename device" });
   }
 });
 

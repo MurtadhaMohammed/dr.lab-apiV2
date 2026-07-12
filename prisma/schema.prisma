@@ -40,10 +40,55 @@ model Client {
   planId           Int
   lastActive       DateTime?
   isTestUpdated    Boolean?   @default(false)
+  syncEnabled      Boolean    @default(false)
+  maxDevices       Int        @default(1)
   Plan             Plan       @relation(fields: [planId], references: [id])
   invoices         Invoice[]
   Wallet           Wallet[]
   whatsapp         Whatsapp[]
+  devices          Device[]
+  users            User[]
+}
+
+model Device {
+  id         Int       @id @default(autoincrement())
+  clientId   Int
+  userId     Int?
+  machineId  String
+  name       String?
+  platform   String?
+  lastSeenAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  Client     Client    @relation(fields: [clientId], references: [id])
+  User       User?     @relation(fields: [userId], references: [id])
+
+  @@unique([clientId, machineId])
+}
+
+// The actual login identity. Client is the lab/tenant (billing, plan,
+// sync scope); User is who logs in — phone/OTP/password/device all live
+// here now, so multiple operators can eventually exist per lab.
+model User {
+  id           Int       @id @default(autoincrement())
+  clientId     Int
+  name         String
+  pin          String?
+  role         String    @default("owner")
+  phone        String    @unique
+  password     String?
+  username     String?   @unique
+  device       String?   @unique
+  platform     String?
+  code         String?   @default("964")
+  otp          Int?
+  otpCount     Int?      @default(0)
+  otpCreatedAt DateTime?
+  isVerified   Boolean?  @default(false)
+  lastActive   DateTime?
+  createdAt    DateTime  @default(now())
+  Client       Client    @relation(fields: [clientId], references: [id])
+  devices      Device[]
 }
 
 model Plan {
@@ -90,6 +135,119 @@ model Wallet {
   type             PaymentType @default(BALANCE)
   clientId         Int
   Client           Client      @relation(fields: [clientId], references: [id])
+}
+
+// ---- Multi-PC sync mirror tables ----
+// The server is a relay, not a source of truth: rows are keyed (clientId, uuid),
+// cross-references are uuid strings without FK constraints (integrity is the
+// desktop client's job), and `updatedAt` is the client-asserted LWW timestamp
+// while `serverUpdatedAt` drives pull cursors.
+
+model SyncPatient {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  uuid            String
+  name            String
+  gender          String?
+  email           String?
+  phone           String?
+  birth           String?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  serverUpdatedAt DateTime  @updatedAt
+
+  @@unique([clientId, uuid])
+  @@index([clientId, serverUpdatedAt])
+}
+
+model SyncDoctor {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  uuid            String
+  name            String
+  gender          String?
+  email           String?
+  phone           String?
+  address         String?
+  type            String?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  serverUpdatedAt DateTime  @updatedAt
+
+  @@unique([clientId, uuid])
+  @@index([clientId, serverUpdatedAt])
+}
+
+model SyncVisit {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  uuid            String
+  patientUuid     String?
+  doctorUuid      String?
+  visitNumber     String?
+  status          String?
+  testType        String?
+  tests           String?
+  discount        Int?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  serverUpdatedAt DateTime  @updatedAt
+
+  @@unique([clientId, uuid])
+  @@index([clientId, serverUpdatedAt])
+}
+
+model SyncTest {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  uuid            String
+  name            String?
+  price           Int?
+  type            String?
+  groupTest       String?
+  normal          String?
+  options         String?
+  isSelecte       Int?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  serverUpdatedAt DateTime  @updatedAt
+
+  @@unique([clientId, uuid])
+  @@index([clientId, serverUpdatedAt])
+}
+
+model SyncPackage {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  uuid            String
+  title           String?
+  customePrice    Int?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  serverUpdatedAt DateTime  @updatedAt
+
+  @@unique([clientId, uuid])
+  @@index([clientId, serverUpdatedAt])
+}
+
+model SyncTestToPackage {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  uuid            String
+  packageUuid     String?
+  testUuid        String?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  serverUpdatedAt DateTime  @updatedAt
+
+  @@unique([clientId, uuid])
+  @@index([clientId, serverUpdatedAt])
 }
 
 enum InvoiceType {

@@ -24,6 +24,13 @@ const authMiddleware = (req, res, next) => {
     }
 
     req.user = decoded;
+    // New (User-based) tokens carry clientId explicitly. Legacy (Client-based)
+    // tokens don't — for those, `id` IS the Client's own id, so fall back to
+    // it. This keeps every already-issued token working unchanged; the
+    // desktop app is responsible for detecting isLegacyToken client-side and
+    // forcing a fresh login through the new User-based flow.
+    req.user.isLegacyToken = decoded.clientId == null;
+    req.user.clientId = decoded.clientId ?? decoded.id;
     next();
   } catch (error) {
     console.error("Error verifying token:", error);

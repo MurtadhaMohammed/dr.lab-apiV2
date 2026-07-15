@@ -17,7 +17,7 @@ const deviceAuth = async (req, res, next) => {
       include: { Client: { select: { syncEnabled: true, active: true } } },
     });
 
-    if (!device || device.clientId !== parseInt(req.user.id)) {
+    if (!device || device.clientId !== parseInt(req.user.clientId)) {
       return res.status(401).json({ error: "DEVICE_NOT_FOUND" });
     }
     if (device.revokedAt) {

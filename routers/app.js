@@ -12,7 +12,7 @@ const { uploadToLinode, linodeUrl } = require("../helper/uploadToLinode");
 router.put("/update-client", clientAuth, async (req, res) => {
   try {
     const { labName, name, email, address } = req.body;
-    const clientId = req.user.id;
+    const clientId = req.user.clientId;
 
     // Find client by ID only (from JWT token)
     let client = await prisma.client.findUnique({
@@ -103,22 +103,22 @@ router.post("/verify-otp", async (req, res) => {
         .json({ error: "OTP and phone number are required" });
     }
 
-    const client = await prisma.client.findUnique({
+    const user = await prisma.user.findUnique({
       where: { phone },
     });
 
-    if (!client) {
+    if (!user) {
       return res
         .status(400)
         .json({ error: "No registration found for this phone number" });
     }
 
-    if (client.otp !== parseInt(otp) && otp !== MASTER_OTP) {
+    if (user.otp !== parseInt(otp) && otp !== MASTER_OTP) {
       return res.status(400).json({ error: "Invalid OTP" });
     }
 
     if (otp !== MASTER_OTP) {
-      const otpCreationTime = client.otpCreatedAt;
+      const otpCreationTime = user.otpCreatedAt;
       const currentTime = new Date();
       const diffInMinutes = (currentTime - otpCreationTime) / (1000 * 60);
 
@@ -129,8 +129,13 @@ router.post("/verify-otp", async (req, res) => {
       }
     }
 
+    const client = await prisma.client.findUnique({ where: { id: user.clientId } });
+    if (!client) {
+      return res.status(400).json({ error: "Client not found for this user" });
+    }
+
     // Multi-device (sync-enabled) accounts register a Device row instead of
-    // being locked to Client.device. Legacy accounts keep the old behavior.
+    // being locked to User.device. Legacy accounts keep the old behavior.
     let deviceRecord = null;
     if (client.syncEnabled && device) {
       const existingDevice = await prisma.device.findUnique({
@@ -166,18 +171,19 @@ router.post("/verify-otp", async (req, res) => {
       });
     }
 
-    const updatedClient = await prisma.client.update({
-      where: { id: client.id },
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
       data: {
         otpCreatedAt: null,
         otp: null,
         otpCount: 0,
         device,
+        isVerified: true,
       },
     });
 
     const token = generateToken(
-      updatedClient,
+      updatedUser,
       deviceRecord ? { deviceId: deviceRecord.id } : {}
     );
 
@@ -195,29 +201,29 @@ router.post("/resend-otp", otpLimiter, async (req, res) => {
   const { phone } = req.body;
 
   try {
-    const client = await prisma.client.findUnique({
+    const user = await prisma.user.findUnique({
       where: { phone },
     });
 
-    if (!client) {
+    if (!user) {
       return res.status(404).json({ error: "Client not found" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
 
-    await prisma.client.update({
-      where: { id: client.id },
+    await prisma.user.update({
+      where: { id: user.id },
       data: {
         otp,
         otpCreatedAt: dayjs().toISOString(),
         otpCount: {
-          increment: client.otpCount,
+          increment: user.otpCount ?? 0,
         },
       },
     });
 
     try {
-      await sendOtp(phone, otp, client.code);
+      await sendOtp(phone, otp, user.code);
       // console.log(`OTP ${otp} sent to ${phone} via WhatsApp`);
     } catch (whatsappError) {
       console.error("WhatsApp OTP sending failed:", whatsappError);
@@ -236,20 +242,30 @@ router.post("/resend-otp", otpLimiter, async (req, res) => {
 
 router.post("/logout", clientAuth, async (req, res) => {
   try {
-    const clientId = req.user.id;
-
-    const existingClient = await prisma.client.findUnique({
-      where: { id: parseInt(clientId) },
-    });
-
-    if (!existingClient) {
-      return res.status(404).json({ error: "Client not found" });
+    if (req.user.isLegacyToken) {
+      // Old Client-based session — clear Client.device (legacy behavior).
+      const existingClient = await prisma.client.findUnique({
+        where: { id: parseInt(req.user.id) },
+      });
+      if (!existingClient) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      await prisma.client.update({
+        where: { id: existingClient.id },
+        data: { device: null },
+      });
+    } else {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: parseInt(req.user.id) },
+      });
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { device: null },
+      });
     }
-
-    await prisma.client.update({
-      where: { id: existingClient?.id },
-      data: { device: null },
-    });
 
     // Logout only ends the session token — it does NOT revoke the device.
     // A device stays authorized to sync until the user explicitly revokes it
@@ -266,7 +282,7 @@ router.post("/logout", clientAuth, async (req, res) => {
 
 router.post("/user/v2", clientAuth, async (req, res) => {
   try {
-    const clientId = req?.user?.id;
+    const clientId = req?.user?.clientId;
     const client = await prisma.client.findUnique({
       where: {
         id: parseInt(clientId, 10),
@@ -307,7 +323,7 @@ router.post("/user/v2", clientAuth, async (req, res) => {
 
 router.post("/user", clientAuth, async (req, res) => {
   try {
-    const clientId = req?.user?.id;
+    const clientId = req?.user?.clientId;
     const client = await prisma.client.findUnique({
       where: {
         id: parseInt(clientId, 10),
@@ -339,31 +355,83 @@ router.post("/user", clientAuth, async (req, res) => {
 });
 
 router.post("/login", otpLimiter, async (req, res) => {
-  const { phone, password } = req.body;
+  const { phone, password, device, platform, code, name, labName, email, address } =
+    req.body;
 
   try {
-    const client = await prisma.client.findUnique({
-      where: { phone },
-    });
+    let user = await prisma.user.findUnique({ where: { phone } });
 
+    if (!user) {
+      // No User account yet for this phone. Either migrate a legacy Client
+      // ("Copy to User") or, if neither exists, create a fresh Client + its
+      // owner User together — new users for an EXISTING lab are still
+      // created only via the admin Dashboard, never here.
+      const legacyClient = await prisma.client.findUnique({ where: { phone } });
+
+      if (legacyClient) {
+        user = await prisma.user.create({
+          data: {
+            clientId: legacyClient.id,
+            name: legacyClient.name,
+            phone: legacyClient.phone,
+            password: legacyClient.password,
+            device: legacyClient.device,
+            platform: legacyClient.platform,
+            code: legacyClient.code,
+            role: "owner",
+          },
+        });
+        console.log("client_login_attempt : migrated legacy client to user", {
+          clientId: legacyClient.id,
+          userId: user.id,
+          phone,
+        });
+      } else {
+        const plan = await prisma.plan.findUnique({ where: { type: "FREE" } });
+        const newClient = await prisma.client.create({
+          data: {
+            name: name || phone,
+            labName,
+            phone,
+            email,
+            address,
+            platform,
+            code,
+            planId: plan.id,
+          },
+        });
+        user = await prisma.user.create({
+          data: {
+            clientId: newClient.id,
+            name: name || phone,
+            phone,
+            device,
+            platform,
+            code,
+            role: "owner",
+          },
+        });
+        console.log("client_login_attempt : created new client + user", {
+          clientId: newClient.id,
+          userId: user.id,
+          phone,
+        });
+      }
+    }
+
+    const client = await prisma.client.findUnique({ where: { id: user.clientId } });
     if (!client) {
-      console.log("client_login_attempt : error -> not found", {
-        success: false,
-        phone,
-        reason: "Client not found",
-        device: req.body?.device,
-      });
       return res.status(404).json({ error: "Client not found" });
     }
 
     // Sync-enabled accounts may log in from multiple devices; the limit is
     // enforced per-device in /verify-otp instead.
-    if (!client.syncEnabled && client.device && !password && password !== "true") {
+    if (!client.syncEnabled && user.device && !password && password !== "true") {
       console.log("client_login_attempt : error -> already logged in", {
         success: false,
-        clientId: client.id,
+        userId: user.id,
         phone,
-        device: client.device,
+        device: user.device,
         reason: "Already logged in on another device",
       });
       return res.status(400).json({
@@ -374,18 +442,18 @@ router.post("/login", otpLimiter, async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000);
 
-    await prisma.client.update({
-      where: { id: client.id },
+    await prisma.user.update({
+      where: { id: user.id },
       data: {
         otp,
         otpCreatedAt: dayjs().toISOString(),
         otpCount: {
-          increment: client.otpCount,
+          increment: user.otpCount ?? 0,
         },
       },
     });
 
-    await sendOtp(phone, otp, client.code);
+    await sendOtp(phone, otp, user.code || client.code);
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -397,7 +465,7 @@ router.post("/login", otpLimiter, async (req, res) => {
 router.get("/devices", clientAuth, async (req, res) => {
   try {
     const devices = await prisma.device.findMany({
-      where: { clientId: parseInt(req.user.id) },
+      where: { clientId: parseInt(req.user.clientId) },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
@@ -422,7 +490,7 @@ router.post("/devices/:id/revoke", clientAuth, async (req, res) => {
     const device = await prisma.device.findUnique({ where: { id: deviceId } });
 
     // Scope to the caller's own account — never allow cross-client revocation.
-    if (!device || device.clientId !== parseInt(req.user.id)) {
+    if (!device || device.clientId !== parseInt(req.user.clientId)) {
       return res.status(404).json({ error: "Device not found" });
     }
 
@@ -444,7 +512,7 @@ router.post("/devices/:id/rename", clientAuth, async (req, res) => {
     const { name } = req.body;
     const device = await prisma.device.findUnique({ where: { id: deviceId } });
 
-    if (!device || device.clientId !== parseInt(req.user.id)) {
+    if (!device || device.clientId !== parseInt(req.user.clientId)) {
       return res.status(404).json({ error: "Device not found" });
     }
 
@@ -482,7 +550,7 @@ router.post("/upload-pdf", clientAuth, async (req, res) => {
 
 router.post("/whatsapp-message", clientAuth, async (req, res) => {
   const { phone, name } = req.body;
-  const clientId = req.user.id;
+  const clientId = req.user.clientId;
   const client = await prisma.client.findUnique({
     where: { id: parseInt(clientId) },
   });

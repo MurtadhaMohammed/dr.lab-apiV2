@@ -76,7 +76,7 @@ function pickFields(row, allowed) {
 
 router.post("/push", clientAuth, deviceAuth, syncLimiter, async (req, res) => {
   try {
-    const clientId = parseInt(req.user.id);
+    const clientId = parseInt(req.user.clientId);
     const { table, rows } = req.body || {};
 
     const config = TABLES[table];
@@ -140,7 +140,7 @@ router.post("/push", clientAuth, deviceAuth, syncLimiter, async (req, res) => {
 
 router.get("/pull", clientAuth, deviceAuth, syncLimiter, async (req, res) => {
   try {
-    const clientId = parseInt(req.user.id);
+    const clientId = parseInt(req.user.clientId);
     const { table, since } = req.query;
     const limit = Math.min(parseInt(req.query.limit) || MAX_BATCH, MAX_BATCH);
 

@@ -425,8 +425,17 @@ router.post("/login", otpLimiter, async (req, res) => {
     }
 
     // Sync-enabled accounts may log in from multiple devices; the limit is
-    // enforced per-device in /verify-otp instead.
-    if (!client.syncEnabled && user.device && !password && password !== "true") {
+    // enforced per-device in /verify-otp instead. Re-authenticating from the
+    // SAME device (e.g. right after a legacy Client->User migration copied
+    // over the old device id) is always allowed — only a genuinely
+    // different device is blocked.
+    if (
+      !client.syncEnabled &&
+      user.device &&
+      user.device !== device &&
+      !password &&
+      password !== "true"
+    ) {
       console.log("client_login_attempt : error -> already logged in", {
         success: false,
         userId: user.id,

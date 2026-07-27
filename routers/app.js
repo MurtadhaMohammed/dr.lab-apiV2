@@ -372,6 +372,7 @@ router.post("/login", otpLimiter, async (req, res) => {
         user = await prisma.user.create({
           data: {
             clientId: legacyClient.id,
+            homeClientId: legacyClient.id,
             name: legacyClient.name,
             phone: legacyClient.phone,
             password: legacyClient.password,
@@ -403,6 +404,7 @@ router.post("/login", otpLimiter, async (req, res) => {
         user = await prisma.user.create({
           data: {
             clientId: newClient.id,
+            homeClientId: newClient.id,
             name: name || phone,
             phone,
             device,
@@ -468,6 +470,46 @@ router.post("/login", otpLimiter, async (req, res) => {
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ error: "Could not log in" });
+  }
+});
+
+// Self-service "leave this lab" — called by the desktop app when an
+// operator who was manually attached to a different lab's Client (support
+// does this by hand — see User.homeClientId) wants to go back to the lab
+// they actually belong to. This does NOT revoke the device: it's the same
+// operator on the same machine, just routed back to their home client.
+// Legacy accounts (isLegacyToken — the Client row itself is the login
+// identity, pre-User) have no such concept, since a Client can't be
+// reassigned to another Client; they just release the single-device lock.
+router.post("/leave-lab", clientAuth, async (req, res) => {
+  try {
+    if (req.user.isLegacyToken) {
+      await prisma.client.update({
+        where: { id: parseInt(req.user.clientId) },
+        data: { device: null },
+      });
+      return res.status(200).json({ success: true });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(req.user.id) },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        device: null,
+        clientId: user.homeClientId || user.clientId,
+      },
+    });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error leaving lab:", error);
+    res.status(500).json({ error: "Could not disconnect from lab" });
   }
 });
 

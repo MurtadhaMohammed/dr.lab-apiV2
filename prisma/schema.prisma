@@ -48,6 +48,7 @@ model Client {
   whatsapp         Whatsapp[]
   devices          Device[]
   users            User[]
+  usersWithHomeHere User[]    @relation("UserHomeClient")
 }
 
 model Device {
@@ -87,7 +88,13 @@ model User {
   isVerified   Boolean?  @default(false)
   lastActive   DateTime?
   createdAt    DateTime  @default(now())
+  // The lab this user was originally created under. clientId can be
+  // manually reassigned (support moves a user to work at a different lab's
+  // client for a while); homeClientId stays fixed so "Leave This Lab" can
+  // restore clientId back to where they actually belong.
+  homeClientId Int?
   Client       Client    @relation(fields: [clientId], references: [id])
+  HomeClient   Client?   @relation("UserHomeClient", fields: [homeClientId], references: [id])
   devices      Device[]
 }
 

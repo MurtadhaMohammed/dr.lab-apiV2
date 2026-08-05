@@ -4,6 +4,16 @@ const prisma = require("../prisma/prismaClient");
 
 const router = express.Router();
 
+const planSelect = {
+  id: true,
+  name: true,
+  type: true,
+  price: true,
+  printLimit: true,
+  Active: true,
+  createdAt: true,
+};
+
 router.get("/all", adminAuth, async (req, res) => {
   try {
     const plans = await prisma.plan.findMany();
@@ -16,25 +26,28 @@ router.get("/all", adminAuth, async (req, res) => {
 
 router.post("/", adminAuth, async (req, res) => {
   try {
-    const { name, price, whatsappLimit, printLimit } = req.body;
+    const { name, type, price, printLimit, Active } = req.body;
+
+    if (!name || !type || price === undefined) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
     const newPlan = await prisma.plan.create({
       data: {
         name,
-        price,
-        whatsappLimit,
-        printLimit
+        type,
+        price: parseInt(price),
+        printLimit: printLimit === undefined || printLimit === null ? null : parseInt(printLimit),
+        ...(Active === undefined ? {} : { Active }),
       },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        whatsappLimit: true,
-        printLimit: true
-      }
+      select: planSelect,
     });
     res.json(newPlan);
   } catch (error) {
     console.error("Error creating plan:", error);
+    if (error.code === "P2002") {
+      return res.status(400).json({ error: "A plan with this type already exists" });
+    }
     res.status(500).json({ error: "Could not create plan" });
   }
 });
@@ -42,26 +55,26 @@ router.post("/", adminAuth, async (req, res) => {
 router.put("/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, whatsappLimit, printLimit } = req.body;
+    const { name, price, printLimit, Active } = req.body;
+
     const updatedPlan = await prisma.plan.update({
       where: { id: parseInt(id) },
       data: {
-        name,
-        price,
-        whatsappLimit,
-        printLimit
+        ...(name === undefined ? {} : { name }),
+        ...(price === undefined ? {} : { price: parseInt(price) }),
+        ...(printLimit === undefined
+          ? {}
+          : { printLimit: printLimit === null ? null : parseInt(printLimit) }),
+        ...(Active === undefined ? {} : { Active }),
       },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        whatsappLimit: true,
-        printLimit: true
-      }
+      select: planSelect,
     });
     res.json(updatedPlan);
   } catch (error) {
     console.error("Error updating plan:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "Plan not found" });
+    }
     res.status(500).json({ error: "Could not update plan" });
   }
 });
@@ -70,13 +83,16 @@ router.delete("/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.plan.delete({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
     });
     res.json({ message: "Plan deleted successfully" });
   } catch (error) {
     console.error("Error deleting plan:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "Plan not found" });
+    }
     res.status(500).json({ error: "Could not delete plan" });
   }
 });
 
-module.exports = router; 
+module.exports = router;

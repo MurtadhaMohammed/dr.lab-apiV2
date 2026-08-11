@@ -17,6 +17,9 @@ const walletRouter = require("./routers/wallet");
 const appRouter = require("./routers/app");
 const syncRouter = require("./routers/sync");
 
+// Admin dashboard endpoints (separate folder, does not touch ./routers)
+const adminDashboardRouter = require("./dashboard");
+
 const fileUpload = require("express-fileupload");
 
 
@@ -45,6 +48,7 @@ app.use("/api/invoice", invoiceRouter);
 app.use("/api/app", appRouter);
 app.use("/api/wallet", walletRouter);
 app.use("/api/sync", syncRouter);
+app.use("/api/dashboard", adminDashboardRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

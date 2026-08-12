@@ -1,9 +1,15 @@
 const express = require("express");
+const dayjs = require("dayjs");
 const adminAuth = require("../middleware/adminAuth");
 const prisma = require("../prisma/prismaClient");
 const { parsePaging } = require("./paging");
 
 const router = express.Router();
+
+// "Active operator" windows for the lab detail page — how many of this
+// lab's operators have a User.lastActive inside the window. Computed here
+// (not on the client) since it's a plain count query either way.
+const ACTIVE_WINDOW_DAYS = { week: 7, month: 30 };
 
 // A laboratory IS a Client row (billing/plan/sync scope). Its people are
 // User rows with clientId pointing here — the "owner" is the User created
@@ -101,15 +107,20 @@ router.get("/:id", adminAuth, async (req, res) => {
     const id = parseInt(req.params.id);
     if (!id) return res.status(400).json({ error: "Invalid laboratory id" });
 
-    const lab = await prisma.client.findUnique({ where: { id }, select: labSelect });
+    const activeWindow = ACTIVE_WINDOW_DAYS[req.query.activeWindow] ? req.query.activeWindow : "week";
+    const activeCutoff = dayjs().subtract(ACTIVE_WINDOW_DAYS[activeWindow], "day").toDate();
+
+    const [lab, owner, activeOperators] = await Promise.all([
+      prisma.client.findUnique({ where: { id }, select: labSelect }),
+      prisma.user.findFirst({
+        where: { clientId: id, role: "owner" },
+        select: { id: true, name: true, phone: true, username: true, createdAt: true },
+      }),
+      prisma.user.count({ where: { clientId: id, lastActive: { gte: activeCutoff } } }),
+    ]);
     if (!lab) return res.status(404).json({ error: "Laboratory not found" });
 
-    const owner = await prisma.user.findFirst({
-      where: { clientId: id, role: "owner" },
-      select: { id: true, name: true, phone: true, username: true, createdAt: true },
-    });
-
-    res.status(200).json({ data: { ...lab, owner } });
+    res.status(200).json({ data: { ...lab, owner, activeOperators, activeWindow } });
   } catch (error) {
     console.error("Error fetching laboratory:", error);
     res.status(500).json({ error: "Could not fetch laboratory" });

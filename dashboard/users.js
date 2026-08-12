@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const adminAuth = require("../middleware/adminAuth");
 const prisma = require("../prisma/prismaClient");
 const { parsePaging } = require("./paging");
+const { syncMaxDevicesToUserCount } = require("../helper/syncMaxDevices");
 
 const router = express.Router();
 
@@ -122,6 +123,8 @@ router.post("/", adminAuth, async (req, res) => {
       },
       select: userSelect,
     });
+
+    await syncMaxDevicesToUserCount(client.id);
 
     res.status(200).json({ message: "User created", data: user });
   } catch (error) {

@@ -304,6 +304,15 @@ router.post("/user/v2", clientAuth, async (req, res) => {
         where: { id: clientId },
         data: { lastActive: now.toISOString() },
       });
+      // Client.lastActive is the lab's heartbeat; also stamp the specific
+      // operator (User row) so "active operators" can be measured per-person,
+      // not just per-lab. Legacy tokens have no User row to update.
+      if (!req.user.isLegacyToken) {
+        await prisma.user.update({
+          where: { id: parseInt(req.user.id) },
+          data: { lastActive: now.toISOString() },
+        });
+      }
     }
 
     if (!client?.isTestUpdated) {
@@ -345,6 +354,12 @@ router.post("/user", clientAuth, async (req, res) => {
         where: { id: clientId },
         data: { lastActive: now.toISOString() },
       });
+      if (!req.user.isLegacyToken) {
+        await prisma.user.update({
+          where: { id: parseInt(req.user.id) },
+          data: { lastActive: now.toISOString() },
+        });
+      }
     }
 
     res.status(200).json(client);

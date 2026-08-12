@@ -2,6 +2,7 @@ const express = require("express");
 const adminAuth = require("../middleware/adminAuth");
 const bcrypt = require("bcryptjs");
 const prisma = require("../prisma/prismaClient");
+const { syncMaxDevicesToUserCount } = require("../helper/syncMaxDevices");
 
 const router = express.Router();
 
@@ -309,29 +310,35 @@ router.put("/toggle-status/:id", adminAuth, async (req, res) => {
   }
 });
 
+// Device slots always match the lab's operator headcount (see
+// helper/syncMaxDevices.js) — this endpoint only flips sync on/off; it
+// doesn't take a maxDevices input anymore.
 router.put("/sync/:id", adminAuth, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { syncEnabled, maxDevices } = req.body;
+    const id = parseInt(req.params.id);
+    const { syncEnabled } = req.body;
 
     const client = await prisma.client.findUnique({
-      where: { id: parseInt(id) },
+      where: { id },
+      include: { Plan: true },
     });
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
     }
 
-    if (maxDevices !== undefined && (isNaN(maxDevices) || maxDevices < 1)) {
-      return res.status(400).json({ error: "maxDevices must be a positive number" });
+    if (syncEnabled && client.Plan?.type === "FREE") {
+      return res.status(400).json({ error: "Multi-PC Sync requires a paid plan." });
     }
 
-    const updatedClient = await prisma.client.update({
-      where: { id: parseInt(id) },
-      data: {
-        ...(syncEnabled !== undefined ? { syncEnabled: !!syncEnabled } : {}),
-        ...(maxDevices !== undefined ? { maxDevices: parseInt(maxDevices) } : {}),
-      },
-    });
+    if (syncEnabled !== undefined) {
+      await prisma.client.update({
+        where: { id },
+        data: { syncEnabled: !!syncEnabled },
+      });
+    }
+    await syncMaxDevicesToUserCount(id);
+
+    const updatedClient = await prisma.client.findUnique({ where: { id } });
 
     res.status(200).json({
       message: "Sync settings updated",
@@ -411,6 +418,7 @@ router.get("/users/:id", adminAuth, async (req, res) => {
         createdAt: true,
         clientId: true,
         homeClientId: true,
+        HomeClient: { select: { id: true, name: true, labName: true } },
       },
     });
 
@@ -448,6 +456,13 @@ router.put("/users/:userId", adminAuth, async (req, res) => {
         ...(clientId !== undefined ? { clientId: parseInt(clientId) } : {}),
       },
     });
+
+    if (clientId !== undefined && parseInt(clientId) !== existingUser.clientId) {
+      await Promise.all([
+        syncMaxDevicesToUserCount(existingUser.clientId),
+        syncMaxDevicesToUserCount(parseInt(clientId)),
+      ]);
+    }
 
     res.status(200).json({ message: "User updated" });
   } catch (error) {

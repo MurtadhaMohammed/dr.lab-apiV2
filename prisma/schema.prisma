@@ -42,6 +42,10 @@ model Client {
   isTestUpdated    Boolean?   @default(false)
   syncEnabled      Boolean    @default(false)
   maxDevices       Int        @default(1)
+  // Manual admin override for device slots. When set, it takes precedence
+  // over the auto-computed (1-per-operator) maxDevices value — see
+  // helper/syncMaxDevices.js. Null means "auto" (the default).
+  maxDevicesOverride Int?
   Plan             Plan       @relation(fields: [planId], references: [id])
   invoices         Invoice[]
   Wallet           Wallet[]

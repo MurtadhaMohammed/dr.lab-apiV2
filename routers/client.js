@@ -399,6 +399,40 @@ router.post("/devices/:deviceId/revoke", adminAuth, async (req, res) => {
   }
 });
 
+router.post("/devices/:deviceId/unrevoke", adminAuth, async (req, res) => {
+  try {
+    const deviceId = parseInt(req.params.deviceId);
+
+    const device = await prisma.device.findUnique({ where: { id: deviceId } });
+    if (!device) {
+      return res.status(404).json({ error: "Device not found" });
+    }
+    if (!device.revokedAt) {
+      return res.status(200).json({ success: true });
+    }
+
+    const client = await prisma.client.findUnique({ where: { id: device.clientId } });
+    const activeCount = await prisma.device.count({
+      where: { clientId: device.clientId, revokedAt: null },
+    });
+    if (activeCount >= client.maxDevices) {
+      return res.status(409).json({
+        error: `Device limit reached (${client.maxDevices}). Revoke another device first.`,
+      });
+    }
+
+    await prisma.device.update({
+      where: { id: deviceId },
+      data: { revokedAt: null },
+    });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error unrevoking device:", error);
+    res.status(500).json({ error: "Could not unrevoke device" });
+  }
+});
+
 router.get("/users/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;

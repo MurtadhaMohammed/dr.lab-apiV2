@@ -3,6 +3,7 @@ const dayjs = require("dayjs");
 const adminAuth = require("../middleware/adminAuth");
 const prisma = require("../prisma/prismaClient");
 const { parsePaging } = require("./paging");
+const { syncMaxDevicesToUserCount } = require("../helper/syncMaxDevices");
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ const labSelect = {
   printCount: true,
   syncEnabled: true,
   maxDevices: true,
+  maxDevicesOverride: true,
   createdAt: true,
   expiredAt: true,
   lastActive: true,
@@ -124,6 +126,40 @@ router.get("/:id", adminAuth, async (req, res) => {
   } catch (error) {
     console.error("Error fetching laboratory:", error);
     res.status(500).json({ error: "Could not fetch laboratory" });
+  }
+});
+
+// PUT /api/dashboard/labs/:id/max-devices — set or clear the manual device
+// slot override. { maxDevices: number } pins the slot count; { maxDevices: null }
+// reverts to the auto-computed (1-per-operator) value.
+router.put("/:id/max-devices", adminAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid laboratory id" });
+
+    const { maxDevices } = req.body;
+    if (maxDevices !== null && (!Number.isInteger(maxDevices) || maxDevices < 1)) {
+      return res.status(400).json({ error: "maxDevices must be a positive integer or null" });
+    }
+
+    const client = await prisma.client.findUnique({ where: { id } });
+    if (!client) return res.status(404).json({ error: "Laboratory not found" });
+
+    if (maxDevices === null) {
+      await prisma.client.update({ where: { id }, data: { maxDevicesOverride: null } });
+      await syncMaxDevicesToUserCount(id);
+    } else {
+      await prisma.client.update({
+        where: { id },
+        data: { maxDevicesOverride: maxDevices, maxDevices },
+      });
+    }
+
+    const updated = await prisma.client.findUnique({ where: { id }, select: labSelect });
+    res.status(200).json({ data: updated });
+  } catch (error) {
+    console.error("Error updating device slots:", error);
+    res.status(500).json({ error: "Could not update device slots" });
   }
 });
 

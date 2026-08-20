@@ -191,17 +191,48 @@ model SyncDoctor {
   @@index([clientId, serverUpdatedAt])
 }
 
-model SyncVisit {
+// visit_v2 / visit_item_v2 are the tables the desktop app actually reads and
+// writes today. The old SyncVisit mirror (for the dead "visits" table) was
+// removed while still in dev — no installs had synced through it yet.
+model SyncVisitV2 {
   id              Int       @id @default(autoincrement())
   clientId        Int
   uuid            String
   patientUuid     String?
   doctorUuid      String?
-  visitNumber     String?
+  visit_number    String?
   status          String?
-  testType        String?
-  tests           String?
-  discount        Int?
+  notes           String?
+  gross_price_iqd Int?
+  discount_iqd    Int?
+  end_price_iqd   Int?
+  paid_iqd        Int?
+  payment_status  String?
+  updatedAt       DateTime
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  serverUpdatedAt DateTime  @updatedAt
+
+  @@unique([clientId, uuid])
+  @@index([clientId, serverUpdatedAt])
+}
+
+model SyncVisitItemV2 {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  uuid            String
+  visitUuid       String?
+  test_id         Int?
+  code            String?
+  type            String?
+  name_en         String?
+  name_ar         String?
+  sample_type     String?
+  unit            String?
+  ref_text        String?
+  price_iqd       Int?
+  meta_json       String?
+  result_json     String?
   updatedAt       DateTime
   deletedAt       DateTime?
   createdAt       DateTime  @default(now())

@@ -84,17 +84,23 @@ router.get("/", adminAuth, async (req, res) => {
   }
 });
 
-// GET /api/dashboard/labs/stats — totals across every lab, not just this page.
+// GET /api/dashboard/labs/stats?activeWindow=week|month — totals across every
+// lab, not just this page. "Active" here means actually used recently
+// (Client.lastActive within the window), not the `active` enable/disable
+// flag — same distinction as the per-lab "Active Operators" window below.
 router.get("/stats", adminAuth, async (req, res) => {
   try {
+    const activeWindow = ACTIVE_WINDOW_DAYS[req.query.activeWindow] ? req.query.activeWindow : "week";
+    const activeCutoff = dayjs().subtract(ACTIVE_WINDOW_DAYS[activeWindow], "day").toDate();
+
     const [totalLabs, activeLabs, paidLabs, noUsersCount] = await Promise.all([
       prisma.client.count(),
-      prisma.client.count({ where: { active: true } }),
+      prisma.client.count({ where: { lastActive: { gte: activeCutoff } } }),
       prisma.client.count({ where: { Plan: { type: { in: ["PAID", "SUBSCRIPTION"] } } } }),
       prisma.client.count({ where: { users: { none: {} } } }),
     ]);
 
-    res.status(200).json({ totalLabs, activeLabs, paidLabs, noUsersCount });
+    res.status(200).json({ totalLabs, activeLabs, paidLabs, noUsersCount, activeWindow });
   } catch (error) {
     console.error("Error fetching lab stats:", error);
     res.status(500).json({ error: "Could not fetch laboratory stats" });

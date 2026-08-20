@@ -11,6 +11,17 @@ const { uploadToLinode, linodeUrl } = require("../helper/uploadToLinode");
 
 router.put("/update-client", clientAuth, async (req, res) => {
   try {
+    // Lab info is only editable by the account owner. Client-side hides/
+    // disables this form for non-owners, but that alone isn't real
+    // authorization — enforce it here too. Legacy (pre-User) tokens have no
+    // separate operator identity, so they're implicitly the owner, same as
+    // before this check existed.
+    if (!req.user.isLegacyToken && req.user.role !== "owner") {
+      return res
+        .status(403)
+        .json({ error: "Only the lab owner can edit this information" });
+    }
+
     const { labName, name, email, address } = req.body;
     const clientId = req.user.clientId;
 
@@ -323,10 +334,60 @@ router.post("/user/v2", clientAuth, async (req, res) => {
       });
     }
 
-    res.status(200).json(client);
+    // The operator's own identity (name/role), sourced from the JWT — null
+    // for legacy tokens, which have no separate User row. Additive field so
+    // existing consumers of this response are unaffected.
+    const currentUser = req.user.isLegacyToken
+      ? null
+      : {
+          id: req.user.id,
+          name: req.user.fullName,
+          role: req.user.role,
+          username: req.user.username,
+        };
+
+    res.status(200).json({ ...client, currentUser });
   } catch (error) {
     console.error("Error removing device from user:", error);
     res.status(500).json({ error: "Could not get user data" });
+  }
+});
+
+router.put("/user", clientAuth, async (req, res) => {
+  try {
+    const { name, username } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Name is required" });
+    }
+    const data = { name, username: username?.trim() || null };
+
+    // Legacy accounts have no separate User row — their "profile" is the
+    // Client row itself, the same field the old Account Info form already
+    // edits, so this falls back to keep them working exactly as before.
+    if (req.user.isLegacyToken) {
+      const updated = await prisma.client.update({
+        where: { id: req.user.clientId },
+        data,
+      });
+      return res
+        .status(200)
+        .json({ success: true, name: updated.name, username: updated.username });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data,
+    });
+
+    res
+      .status(200)
+      .json({ success: true, name: updated.name, username: updated.username });
+  } catch (error) {
+    if (error.code === "P2002") {
+      return res.status(400).json({ error: "Username already exists" });
+    }
+    console.error("Error updating user profile:", error);
+    res.status(500).json({ error: "Could not update profile" });
   }
 });
 
@@ -362,7 +423,16 @@ router.post("/user", clientAuth, async (req, res) => {
       }
     }
 
-    res.status(200).json(client);
+    const currentUser = req.user.isLegacyToken
+      ? null
+      : {
+          id: req.user.id,
+          name: req.user.fullName,
+          role: req.user.role,
+          username: req.user.username,
+        };
+
+    res.status(200).json({ ...client, currentUser });
   } catch (error) {
     console.error("Error removing device from user:", error);
     res.status(500).json({ error: "Could not get user data" });
@@ -525,6 +595,30 @@ router.post("/leave-lab", clientAuth, async (req, res) => {
   } catch (error) {
     console.error("Error leaving lab:", error);
     res.status(500).json({ error: "Could not disconnect from lab" });
+  }
+});
+
+router.get("/users", clientAuth, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { clientId: parseInt(req.user.clientId) },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        phone: true,
+        username: true,
+        device: true,
+        isVerified: true,
+        lastActive: true,
+        createdAt: true,
+      },
+    });
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error("Error listing lab users:", error);
+    res.status(500).json({ error: "Could not list users" });
   }
 });
 

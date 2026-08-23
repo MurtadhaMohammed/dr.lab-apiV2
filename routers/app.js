@@ -182,6 +182,17 @@ router.post("/verify-otp", async (req, res) => {
       });
     }
 
+    if (device) {
+      // User.device is @unique — a physical device can only be tied to one
+      // account at a time, so verifying OTP on a device that's still
+      // stamped on a different (stale/abandoned) User row must release it
+      // first, or this update 500s with a P2002 unique-constraint error.
+      await prisma.user.updateMany({
+        where: { device, NOT: { id: user.id } },
+        data: { device: null },
+      });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
